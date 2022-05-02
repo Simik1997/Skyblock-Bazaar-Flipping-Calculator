@@ -243,13 +243,28 @@ function updateDisplay() {
 	table.append(header);
 
 	// Create table rows
-	calcData.forEach(function(item) { 
+	calcData.forEach(function(item, index) { 
 		//  If maxOffers is >1, an extra column is added to show
 		// the number of offers required to buy/sell that many items
-		var rowFields = "<td><a target='_blank' href='https://hypixel-skyblock.fandom.com/wiki/"+item.name+"'>" + item.name + 
-		"</td><td onclick='copyTextToClipboard(\""+item.salesBacklog.toFixed(1)+"\")'>" + numberWithCommas(item.salesBacklog.toFixed(1)) + 
-		"</td><td onclick='copyTextToClipboard(\""+item.buyPrice.toFixed(1)+"\")'>" + numberWithCommas(item.buyPrice.toFixed(1)) + 
-		"</td><td onclick='copyTextToClipboard(\""+item.sellPrice.toFixed(1)+"\")'>" + numberWithCommas(item.sellPrice.toFixed(1)) + 
+		var rowFields = "<td><a target='_blank' href='https://hypixel-skyblock.fandom.com/wiki/"+item.name+"'>" + item.name + "</td>";
+
+		rowFields += "<td onclick='copyTextToClipboard(\""+item.salesBacklog.toFixed(1)+"\")'>" + numberWithCommas(item.salesBacklog.toFixed(1));
+		rowFields += "</td>"
+
+		rowFields += "<td onclick='copyTextToClipboard(\""+item.buyPrice.toFixed(1)+"\")'>" + numberWithCommas(item.buyPrice.toFixed(1))+"</br><span id='BP"+item.name+"'>";
+		if(expertMode){
+			document.getElementById("BP"+item.name).innerHTML = "...";
+			setTimeout(function(){ 
+				//delay!
+				var url = "https://sky.coflnet.com/api/item/price/"+item.name.toString().replace(" ","_")+"/history/month?";
+				$.getJSON(url, async function(result) {
+					document.getElementById("BP"+item.name).innerHTML = average(result, item.name);
+				});
+			}, 2000*index);
+		}
+		rowFields += "</td>";
+
+		rowFields += "<td onclick='copyTextToClipboard(\""+item.sellPrice.toFixed(1)+"\")'>" + numberWithCommas(item.sellPrice.toFixed(1)) + 
 		"</td><td onclick='copyTextToClipboard(\""+item.profitPerItem.toFixed(1)+"\")'>" + numberWithCommas(item.profitPerItem.toFixed(1)) + 
 		"</td>";
 
@@ -325,6 +340,8 @@ $('button#helpButton').click(function(){
 
 $('button#refreshButton').click(function(){
 	getProductList();
+
+	/* https://sky.coflnet.com/item/FLINT?itemFilter=&range=week */
 });
 
 // Get the data from the Skyblock API
@@ -332,6 +349,26 @@ getProductList();
 
 
 /* Helper */
+
+const average = (arr, name) => {
+	const na = name;
+	const { length } = arr;
+	return arr.reduce((acc, val) => {
+	   return acc + (val.avg/length);
+	}, 0);
+ };
+
+/* function average(prices){
+
+	let filteredData = prices.filter(({ gender }) => 'female' == 'female'),
+    average = filteredData.reduce((r, c) => r + c.avg, 0) / filteredData.length;
+
+
+
+	//let filteredData = prices.filter(true);
+	//const average = filteredData.reduce((r, c) => r + c.avg, 0) / filteredData.length;// prices.reduce((total, next) => total + next.avg, 0) / prices.length;
+	return average;
+} */
 
 function numberWithCommas(x) {
     return x.toString().replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, " ");
