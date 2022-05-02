@@ -10,9 +10,16 @@ var apiData = {};
 var maxOutlay = 1000000;
 var maxOffers = 1;
 var maxBacklog = 7;
+var sortByName = false;
 var sortBySalesBacklog = false;
+var sortByBuyOrder = false;
+var sortBySellOffer = false;
 var sortByProfitPerItem = false;
+var sortByQuantity = false;
+var sortByNumOffers = false;
 var sortByTotalProfit = true;
+
+var expertMode = false;
 
 // Item name lookups for certain items where just transforming the name
 // to sentence case isn't enough
@@ -93,6 +100,42 @@ function prettify(string) {
 	return result;
 }
 
+function sortItems(type){
+
+	console.log(type);
+
+	sortByName = false;
+	sortBySalesBacklog = false;
+	sortByBuyOrder = false;
+	sortBySellOffer = false;
+	sortByProfitPerItem = false;
+	sortByQuantity = false;
+	sortByNumOffers = false;
+	sortByTotalProfit = false;
+
+	if(type === "Item Name"){
+		sortByName = true;
+	} else if (type === "Sales Backlog"){
+		sortBySalesBacklog = true;
+	} else if (type === "Buy Order at"){
+		sortByBuyOrder = true;
+	} else if (type === "Sell Offer at"){
+		sortBySellOffer = true;
+	} else if (type === "Profit per Item"){
+		sortByProfitPerItem = true;
+	} else if (type === "Quantity"){
+		sortByQuantity = true;
+	} else if( type === "Number of Offers") {
+		sortByNumOffers = true;
+	} else if (type === "Total Profit"){
+		sortByTotalProfit = true;
+	} else {
+		sortByTotalProfit = true;
+	}
+
+	updateDisplay();
+}
+
 // Main function that performs calculations and updates the display
 function updateDisplay() {
 	// First, set up a list to store our calculated data that will
@@ -160,10 +203,20 @@ function updateDisplay() {
 	}
 
 	// Apply the required sort to the data
-	if (sortBySalesBacklog) {
+	if (sortByName) {
+		calcData.sort((a, b) => (a.name > b.name) ? 1 : -1);
+	} else if(sortByBuyOrder) {
+		calcData.sort((a, b) => (a.buyPrice > b.buyPrice) ? 1 : -1);
+	} else if(sortBySellOffer) {
+		calcData.sort((a, b) => (a.sellPrice > b.sellPrice) ? 1 : -1);
+	} else if(sortBySalesBacklog) {
 		calcData.sort((a, b) => (a.salesBacklog > b.salesBacklog) ? 1 : -1);
-	} else if (sortByProfitPerItem) {
+	} else if (sortByQuantity) {
 		calcData.sort((a, b) => (a.profitPerItem > b.profitPerItem) ? -1 : 1);
+	} else if (sortByProfitPerItem) {
+		calcData.sort((a, b) => (a.maxQuantity > b.maxQuantity) ? -1 : 1);
+	} else if (sortByNumOffers) {
+		calcData.sort((a, b) => (a.numOffersRequired > b.numOffersRequired) ? -1 : 1);
 	} else if (sortByTotalProfit) {
 		calcData.sort((a, b) => (a.totalProfit > b.totalProfit) ? -1 : 1);
 	} else {
@@ -173,11 +226,18 @@ function updateDisplay() {
 	// Create table header. If maxOffers is >1, an extra column is added to show
 	// the number of offers required to buy/sell that many items
 	var table = $('<table>').addClass('results');
-	var headerFields = "<th>Item Name</th><th>Sales Backlog</th><th>Buy Order at</th><th>Sell Offer at</th><th>Profit per Item</th><th>Quantity</th>";
+	var headerFields = "<th onclick='sortItems(\"Item Name\")'>Item Name</th>"+
+	"<th onclick='sortItems(\"Sales Backlog\")'>Sales Backlog</th>"+
+	"<th onclick='sortItems(\"Buy Order at\")'>Buy at</th>"+
+	"<th onclick='sortItems(\"Sell Offer at\")'>Sell at</th>"+
+	"<th onclick='sortItems(\"Profit per Item\")'>per Item</th>"+
+	"<th onclick='sortItems(\"Quantity\")'>Quantity</th>";
+
 	if (maxOffers > 1) {
-		headerFields += "<th>Number of Offers</th>";
+		headerFields += "<th onclick='sortItems(\"Number of Offers\")'>Offers</th>";
 	}
-	headerFields += "<th>Total Profit</th>";
+
+	headerFields += "<th onclick='sortItems(\"Total Profit\")'>Profit</th>";
 	var header = $('<tr>').html(headerFields);
 
 	table.append(header);
@@ -186,11 +246,30 @@ function updateDisplay() {
 	calcData.forEach(function(item) { 
 		//  If maxOffers is >1, an extra column is added to show
 		// the number of offers required to buy/sell that many items
-		var rowFields = "<td>" + item.name + "</td><td>" + item.salesBacklog.toFixed(1) + "</td><td>" + item.buyPrice.toFixed(1) + "</td><td>" + item.sellPrice.toFixed(1) + "</td><td>" + item.profitPerItem.toFixed(1) + "</td><td>" + item.maxQuantity + "</td>";
-		if (maxOffers > 1) {
-			rowFields += "<td>" + item.numOffersRequired + "</td>";
+		var rowFields = "<td><a target='_blank' href='https://hypixel-skyblock.fandom.com/wiki/"+item.name+"'>" + item.name + 
+		"</td><td onclick='copyTextToClipboard(\""+item.salesBacklog.toFixed(1)+"\")'>" + numberWithCommas(item.salesBacklog.toFixed(1)) + 
+		"</td><td onclick='copyTextToClipboard(\""+item.buyPrice.toFixed(1)+"\")'>" + numberWithCommas(item.buyPrice.toFixed(1)) + 
+		"</td><td onclick='copyTextToClipboard(\""+item.sellPrice.toFixed(1)+"\")'>" + numberWithCommas(item.sellPrice.toFixed(1)) + 
+		"</td><td onclick='copyTextToClipboard(\""+item.profitPerItem.toFixed(1)+"\")'>" + numberWithCommas(item.profitPerItem.toFixed(1)) + 
+		"</td>";
+
+		rowFields += "<td onclick='copyTextToClipboard(\""+item.maxQuantity.toFixed(1)+"\")'>" + numberWithCommas(item.maxQuantity);
+		if(expertMode){
+			rowFields += "<br><span class='small'>"+(item.maxQuantity/2304).toFixed(1)+" Inv.</span>";	/* /2304 = Inventare */
 		}
-		rowFields += "<td>" + item.totalProfit.toFixed(0) + "</td>";
+		rowFields +="</td>";
+
+		if (maxOffers > 1) {
+			rowFields += "<td>" + numberWithCommas(item.numOffersRequired) + "</td>";
+		}
+
+		rowFields += "<td>" + numberWithCommas(item.totalProfit.toFixed(0));
+		if(expertMode){
+			rowFields += "<br><span class='small'>"+((item.sellPrice/item.buyPrice)*100-100).toFixed(1)+"%</span>"	
+		}
+		rowFields +="</td>";
+
+
 		var row = $('<tr>').html(rowFields);
 
 		// Add to table
@@ -235,15 +314,37 @@ $('#maxBacklog').keyup(function() {
     maxBacklog = $( this ).val();
     updateDisplay();
 });
-$('input.sortBy').on('change', function() {
-	sortBySalesBacklog = $('input#sortBySalesBacklog').is(":checked");
-	sortByProfitPerItem = $('input#sortByProfitPerItem').is(":checked");
-	sortByTotalProfit = $('input#sortByTotalProfit').is(":checked");
+
+$('input.settings').on('change', function() {
+	expertMode = $('input#expertMode').is(":checked");
 	updateDisplay();
 });
 $('button#helpButton').click(function(){
   $('div.help').toggle("fast");
 });
 
+$('button#refreshButton').click(function(){
+	getProductList();
+});
+
 // Get the data from the Skyblock API
 getProductList();
+
+
+/* Helper */
+
+function numberWithCommas(x) {
+    return x.toString().replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, " ");
+}
+
+function copyTextToClipboard(text) {
+	if (!navigator.clipboard) {
+	  return;
+	}
+	navigator.clipboard.writeText(text).then(function() {
+	  console.log('Async: Copying to clipboard was successful!');
+	}, function(err) {
+	  console.error('Async: Could not copy text: ', err);
+	});
+  }
+  
