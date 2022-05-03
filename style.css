@@ -9,14 +9,14 @@
 
 /** Page formatting */
 html { 
-	/* background: url(skyblockbg.jpg) no-repeat center center fixed;  */
+	background: url(skyblockbg.jpg) no-repeat center center fixed; 
 	-webkit-background-size: cover;
 	-moz-background-size: cover;
 	-o-background-size: cover;
 	background-size: cover;
 }
 body {
-  max-width: 66em;
+  max-width: 88em;
   margin: 0 auto;
 	font-family: "Minecraft", sans-serif;
 }
@@ -124,9 +124,9 @@ table, th, td {
   font-weight: 400;
 }
 
-/* .nowrap {
+.nowrap {
   white-space: nowrap;
-} */
+}
 
 th {
   background-color: black;
@@ -138,7 +138,9 @@ th:hover {
   color: white;
 }
 
-tr:hover {background-color: lightgray;}
+.highlight:hover {
+  background-color: rgba(180, 180, 180, 0.479)
+}
 
 /* Footer formatting */
 div#similartools {
@@ -157,4 +159,17 @@ div#footer {
 .small{
   font-size: small;
   
+}
+
+.color-red{
+  color: #AA0000;
+}
+.color-yellow{
+  color: #FFFF55;
+}
+.color-green{
+  color: #00AA00;
+}
+.color-black{
+  color: #000;
 }

@@ -20,6 +20,8 @@ var sortByNumOffers = false;
 var sortByTotalProfit = true;
 
 var expertMode = false;
+var transactionLog = false;
+var npcDeals = false;
 
 // Item name lookups for certain items where just transforming the name
 // to sentence case isn't enough
@@ -186,6 +188,10 @@ function updateDisplay() {
 			item.numOffersRequired = Math.ceil(item.maxQuantity / MAX_QUANTITY_PER_ORDER);
 			item.totalProfit = (item.sellPrice - item.buyPrice) * item.maxQuantity
 
+			//ExpertViews
+			item.buyOrders = apiData.products[id].quick_status.buyOrders;
+			item.sellOrders = apiData.products[id].quick_status.sellOrders;
+
 			// Only store the data if the item is profitable, and we can afford at
 			// least one item, and the sales backlog is below our threshold. Otherwise
 			// add the name of the item to a separate list so we can note at the bottom
@@ -232,20 +238,23 @@ function updateDisplay() {
 	"<th onclick='sortItems(\"Sell Offer at\")'>Sell at</th>"+
 	"<th onclick='sortItems(\"Profit per Item\")'>per Item</th>"+
 	"<th onclick='sortItems(\"Quantity\")'>Quantity</th>";
-
 	if (maxOffers > 1) {
 		headerFields += "<th onclick='sortItems(\"Number of Offers\")'>Offers</th>";
 	}
 
 	headerFields += "<th onclick='sortItems(\"Total Profit\")'>Profit</th>";
-	var header = $('<tr>').html(headerFields);
 
+	if(transactionLog || expertMode){
+	headerFields += "<th>Actions</th>";
+	}
+	
+	var header = $('<tr>').html(headerFields);
 	table.append(header);
 
 	// Create table rows
 	calcData.forEach(function(item, index) { 
-		//  If maxOffers is >1, an extra column is added to show
-		// the number of offers required to buy/sell that many items
+
+		/* Name + Wiki + 24h Graph */
 		var rowFields = "<td><a target='_blank' href='https://hypixel-skyblock.fandom.com/wiki/"+item.name.toString().replace(" ","_")+"'>" + item.name;
 		if(expertMode){
 			rowFields += "<br><a target='_blank' href='https://bazaartracker.com/product/"+item.name.toString().replace(" ","_")+"'class='small'>24 Hour Graph</span>";
@@ -253,45 +262,104 @@ function updateDisplay() {
 		rowFields += "</td>";
 
 		
+		/* Sales Backlog */
+		var color = "";
+		if(item.salesBacklog > 6) { color = "color-red"; } 
+		if(item.salesBacklog < 6) { color = "color-yellow";} 
+		if(item.salesBacklog < 4) { color = "color-black";} 
+		if(item.salesBacklog < 1) {color = "color-green";}
 
-		rowFields += "<td onclick='copyTextToClipboard(\""+item.salesBacklog.toFixed(1)+"\")'>" + numberWithCommas(item.salesBacklog.toFixed(1));
+		rowFields += "<td class='"+color+"' onclick='copyTextToClipboard(\""+item.salesBacklog.toFixed(1)+"\")'>" + numberWithCommas(item.salesBacklog.toFixed(1));
 		rowFields += "</td>"
 
-		rowFields += "<td onclick='copyTextToClipboard(\""+item.buyPrice.toFixed(1)+"\")'>" + numberWithCommas(item.buyPrice.toFixed(1))+"</br><span id='BP"+item.name+"'>";
+		/* BuyAt */
+		rowFields += "<td onclick='copyTextToClipboard(\""+item.buyPrice.toFixed(1)+"\")'>" + numberWithCommas(item.buyPrice.toFixed(1)); //<span id='BP"+item.name+"'></span>
 		if(expertMode){
-/* 			document.getElementById("BP"+item.name).innerHTML = "..."; TODO - AVG Price
-			setTimeout(function(){ 
-				//delay!
-				var url = "https://sky.coflnet.com/api/item/price/"+item.name.toString().replace(" ","_")+"/history/month?";
-				$.getJSON(url, async function(result) {
-					document.getElementById("BP"+item.name).innerHTML = average(result, item.name);
-				});
-			}, 2000*index); */
+			if(item.buyOrders > 500) { color = "color-green"; } 
+			if(item.buyOrders < 500) { color = "color-black";} 
+			if(item.buyOrders < 100) { color = "color-yellow";} 
+			if(item.buyOrders < 50) {color = "color-red";}
+
+			rowFields += "</br><span class='small "+color+"'>"+item.buyOrders+" Ord.</span>"	
 		}
 		rowFields += "</td>";
 
-		rowFields += "<td onclick='copyTextToClipboard(\""+item.sellPrice.toFixed(1)+"\")'>" + numberWithCommas(item.sellPrice.toFixed(1)) + 
-		"</td><td onclick='copyTextToClipboard(\""+item.profitPerItem.toFixed(1)+"\")'>" + numberWithCommas(item.profitPerItem.toFixed(1)) + 
-		"</td>";
+		/* 	document.getElementById("BP"+item.name).innerHTML = "..."; TODO - AVG Price
+		setTimeout(function(){ 
+			//delay!
+			var url = "https://sky.coflnet.com/api/item/price/"+item.name.toString().replace(" ","_")+"/history/month?";
+			$.getJSON(url, async function(result) {
+				document.getElementById("BP"+item.name).innerHTML = average(result, item.name);
+			});
+		}, 2000*index); */
 
+
+		/* Sell At */
+		rowFields += "<td onclick='copyTextToClipboard(\""+item.sellPrice.toFixed(1)+"\")'>" + numberWithCommas(item.sellPrice.toFixed(1));
+		if(expertMode){
+			if(item.sellOrders > 500) { color = "color-green"; } 
+			if(item.sellOrders < 500) { color = "color-black";} 
+			if(item.sellOrders < 100) { color = "color-yellow";} 
+			if(item.sellOrders < 50) {color = "color-red";}
+			rowFields += "</br><span class='small "+color+"'>"+item.sellOrders+" Ord.</span>"	
+		}
+		rowFields += "</td>";
+
+		/* Per Item */
+		rowFields += "<td onclick='copyTextToClipboard(\""+item.profitPerItem.toFixed(1)+"\")'>" + numberWithCommas(item.profitPerItem.toFixed(1));
+		if(expertMode){
+		}
+		rowFields += "</td>";
+
+		/* Quantity */
 		rowFields += "<td onclick='copyTextToClipboard(\""+item.maxQuantity.toFixed(1)+"\")'>" + numberWithCommas(item.maxQuantity);
 		if(expertMode){
-			rowFields += "<br><span class='small'>"+(item.maxQuantity/2304).toFixed(1)+" Inv.</span>";	/* /2304 = Inventare */
+
+			var invs = (item.maxQuantity/2304).toFixed(1); /* /2304 = Inventare */
+
+			if(invs > 25) { color = "color-red"; } 
+			if(invs < 25) { color = "color-yellow";} 
+			if(invs < 15) { color = "color-black";} 
+			if(invs < 2) {color = "color-green";}
+			rowFields += "<br><span class='small "+color+"'>"+invs+" Inv.</span>";	
 		}
 		rowFields +="</td>";
 
+		//  If maxOffers is >1, an extra column is added to show
+		// the number of offers required to buy/sell that many items
 		if (maxOffers > 1) {
 			rowFields += "<td>" + numberWithCommas(item.numOffersRequired) + "</td>";
 		}
 
 		rowFields += "<td>" + numberWithCommas(item.totalProfit.toFixed(0));
 		if(expertMode){
-			rowFields += "<br><span class='small'>"+((item.sellPrice/item.buyPrice)*100-100).toFixed(2)+"%</span>"	
+
+			var marginPercent = ((item.sellPrice/item.buyPrice)*100-100).toFixed(2);
+
+			if(marginPercent > 500) { color = "color-green"; } 
+			if(marginPercent < 500) { color = "color-black";} 
+			if(marginPercent < 5) { color = "color-yellow";} 
+			if(marginPercent < 2) {color = "color-red";}
+
+			rowFields += "<br><span class='small nowrap "+color+"'>"+marginPercent+"%</span>"	
 		}
 		rowFields +="</td>";
 
-
-		var row = $('<tr>').html(rowFields);
+		/* Actions */
+		if(transactionLog || expertMode){
+		rowFields +="<td>";
+		/* TODO: Actions */
+		if(transactionLog){
+		rowFields +="<img width='24px' style='padding: 2px' src='img/chestBuy.png'>";	
+		rowFields +="<img width='24px' style='padding: 2px' src='img/chestSell.png'>";	
+		} 
+		if(expertMode){
+		rowFields +="<img width='26px' src='img/gray_dye.png'>"; 
+		rowFields +="<img width='26px' src='img/nether_star.png'>";
+		rowFields +="</td>";
+		}
+	}
+		var row = $('<tr class="highlight">').html(rowFields);
 
 		// Add to table
 	    table.append(row);
@@ -338,8 +406,11 @@ $('#maxBacklog').keyup(function() {
 
 $('input.settings').on('change', function() {
 	expertMode = $('input#expertMode').is(":checked");
+	transactionLog = $('input#transactionLog').is(":checked");
+	npcDeals = $('input#npcDeals').is(":checked");
 	updateDisplay();
 });
+
 $('button#helpButton').click(function(){
   $('div.help').toggle("fast");
 });
