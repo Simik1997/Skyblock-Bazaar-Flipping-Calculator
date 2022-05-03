@@ -246,21 +246,27 @@ function updateDisplay() {
 	calcData.forEach(function(item, index) { 
 		//  If maxOffers is >1, an extra column is added to show
 		// the number of offers required to buy/sell that many items
-		var rowFields = "<td><a target='_blank' href='https://hypixel-skyblock.fandom.com/wiki/"+item.name+"'>" + item.name + "</td>";
+		var rowFields = "<td><a target='_blank' href='https://hypixel-skyblock.fandom.com/wiki/"+item.name.toString().replace(" ","_")+"'>" + item.name;
+		if(expertMode){
+			rowFields += "<br><a target='_blank' href='https://bazaartracker.com/product/"+item.name.toString().replace(" ","_")+"'class='small'>24 Hour Graph</span>";
+		}
+		rowFields += "</td>";
+
+		
 
 		rowFields += "<td onclick='copyTextToClipboard(\""+item.salesBacklog.toFixed(1)+"\")'>" + numberWithCommas(item.salesBacklog.toFixed(1));
 		rowFields += "</td>"
 
 		rowFields += "<td onclick='copyTextToClipboard(\""+item.buyPrice.toFixed(1)+"\")'>" + numberWithCommas(item.buyPrice.toFixed(1))+"</br><span id='BP"+item.name+"'>";
 		if(expertMode){
-			document.getElementById("BP"+item.name).innerHTML = "...";
+/* 			document.getElementById("BP"+item.name).innerHTML = "..."; TODO - AVG Price
 			setTimeout(function(){ 
 				//delay!
 				var url = "https://sky.coflnet.com/api/item/price/"+item.name.toString().replace(" ","_")+"/history/month?";
 				$.getJSON(url, async function(result) {
 					document.getElementById("BP"+item.name).innerHTML = average(result, item.name);
 				});
-			}, 2000*index);
+			}, 2000*index); */
 		}
 		rowFields += "</td>";
 
@@ -280,7 +286,7 @@ function updateDisplay() {
 
 		rowFields += "<td>" + numberWithCommas(item.totalProfit.toFixed(0));
 		if(expertMode){
-			rowFields += "<br><span class='small'>"+((item.sellPrice/item.buyPrice)*100-100).toFixed(1)+"%</span>"	
+			rowFields += "<br><span class='small'>"+((item.sellPrice/item.buyPrice)*100-100).toFixed(2)+"%</span>"	
 		}
 		rowFields +="</td>";
 
