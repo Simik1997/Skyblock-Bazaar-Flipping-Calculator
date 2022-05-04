@@ -18,6 +18,9 @@ var sortByProfitPerItem = false;
 var sortByQuantity = false;
 var sortByNumOffers = false;
 var sortByTotalProfit = true;
+var hiddenItems = [''];
+var favorites = [''];
+var transactions = [{id: 1,date: new Date(),type: "buy", name: "Enchanted Pork", price: 1000.3, count:2000, countProgressed: 1000},{id: 2,date: new Date(),type: "sell", name: "Enchanted Pork", price: 1024.1, count:2000, countProgressed: 1000}];
 
 var expertMode = false;
 var transactionLog = false;
@@ -53,15 +56,15 @@ function request(endpoint, params, callback) {
 
 // Encode query data function
 function encodeQueryData(data) {
-   const ret = [];
-   for (let d in data)
-     ret.push(encodeURIComponent(d) + '=' + encodeURIComponent(data[d]));
-   return ret.join('&');
+	const ret = [];
+	for (let d in data)
+		ret.push(encodeURIComponent(d) + '=' + encodeURIComponent(data[d]));
+	return ret.join('&');
 }
 
 // Main method to get product list
 function getProductList() {
-	request("/skyblock/bazaar", {}, async function(result) {
+	request("/skyblock/bazaar", {}, async function (result) {
 		// Store refresh date
 		lastRefresh = new Date();
 		// Unpack data
@@ -92,7 +95,7 @@ function prettify(string) {
 		result = ITEM_NAMES_LOOKUP.get(string);
 	} else {
 		var sentence = string.toLowerCase().split("_");
-		for(var i = 0; i< sentence.length; i++){
+		for (var i = 0; i < sentence.length; i++) {
 			sentence[i] = sentence[i][0].toUpperCase() + sentence[i].slice(1);
 		}
 		result = sentence.join(" ");
@@ -102,7 +105,7 @@ function prettify(string) {
 	return result;
 }
 
-function sortItems(type){
+function sortItems(type) {
 
 	console.log(type);
 
@@ -115,21 +118,21 @@ function sortItems(type){
 	sortByNumOffers = false;
 	sortByTotalProfit = false;
 
-	if(type === "Item Name"){
+	if (type === "Item Name") {
 		sortByName = true;
-	} else if (type === "Sales Backlog"){
+	} else if (type === "Sales Backlog") {
 		sortBySalesBacklog = true;
-	} else if (type === "Buy Order at"){
+	} else if (type === "Buy Order at") {
 		sortByBuyOrder = true;
-	} else if (type === "Sell Offer at"){
+	} else if (type === "Sell Offer at") {
 		sortBySellOffer = true;
-	} else if (type === "Profit per Item"){
+	} else if (type === "Profit per Item") {
 		sortByProfitPerItem = true;
-	} else if (type === "Quantity"){
+	} else if (type === "Quantity") {
 		sortByQuantity = true;
-	} else if( type === "Number of Offers") {
+	} else if (type === "Number of Offers") {
 		sortByNumOffers = true;
-	} else if (type === "Total Profit"){
+	} else if (type === "Total Profit") {
 		sortByTotalProfit = true;
 	} else {
 		sortByTotalProfit = true;
@@ -140,6 +143,7 @@ function sortItems(type){
 
 // Main function that performs calculations and updates the display
 function updateDisplay() {
+	//#region Items
 	// First, set up a list to store our calculated data that will
 	// appear in the table
 	var calcData = [];
@@ -147,6 +151,7 @@ function updateDisplay() {
 	var notProfitable = [];
 	var notAffordable = [];
 	var notSellable = [];
+	var hidden = [];
 
 	// Iterate over all products...
 	for (id in apiData.products) {
@@ -161,8 +166,8 @@ function updateDisplay() {
 			// current order/offer lists. This is a bit back-to-front as in the API
 			// data, "buySummary" shows what from the user's point of view is "sell
 			// offers", whereas "sellSummary" shows "buy orders".
-			var lowestSellOffer = Math.min.apply(Math, buySummary.map(function(o) { return o.pricePerUnit; }));
-			var highestBuyOrder = Math.max.apply(Math, sellSummary.map(function(o) { return o.pricePerUnit; }));
+			var lowestSellOffer = Math.min.apply(Math, buySummary.map(function (o) { return o.pricePerUnit; }));
+			var highestBuyOrder = Math.max.apply(Math, sellSummary.map(function (o) { return o.pricePerUnit; }));
 
 			// We want to undercut the competition on both sides, so we want to put
 			// in a sell offer for the current lowest sell offer minus 0.1 coins/item,
@@ -180,6 +185,7 @@ function updateDisplay() {
 			sellVolume = apiData.products[id].quick_status.sellVolume;
 			sellMovingWeek = apiData.products[id].quick_status.sellMovingWeek;
 			item.salesBacklog = sellVolume / (sellMovingWeek / 7.0);
+			item.salesPerDay = (sellMovingWeek / 7.0);
 
 			// Work out how many we can afford with our maximum outlay, and
 			// the constraint of how many orders we're willing to place
@@ -202,6 +208,8 @@ function updateDisplay() {
 				notAffordable.push(item);
 			} else if (item.salesBacklog > maxBacklog) {
 				notSellable.push(item);
+			} else if (hiddenItems.includes(item.name)) {
+				hidden.push(item);
 			} else {
 				calcData.push(item);
 			}
@@ -211,11 +219,11 @@ function updateDisplay() {
 	// Apply the required sort to the data
 	if (sortByName) {
 		calcData.sort((a, b) => (a.name > b.name) ? 1 : -1);
-	} else if(sortByBuyOrder) {
+	} else if (sortByBuyOrder) {
 		calcData.sort((a, b) => (a.buyPrice > b.buyPrice) ? 1 : -1);
-	} else if(sortBySellOffer) {
+	} else if (sortBySellOffer) {
 		calcData.sort((a, b) => (a.sellPrice > b.sellPrice) ? 1 : -1);
-	} else if(sortBySalesBacklog) {
+	} else if (sortBySalesBacklog) {
 		calcData.sort((a, b) => (a.salesBacklog > b.salesBacklog) ? 1 : -1);
 	} else if (sortByQuantity) {
 		calcData.sort((a, b) => (a.profitPerItem > b.profitPerItem) ? -1 : 1);
@@ -232,55 +240,58 @@ function updateDisplay() {
 	// Create table header. If maxOffers is >1, an extra column is added to show
 	// the number of offers required to buy/sell that many items
 	var table = $('<table>').addClass('results');
-	var headerFields = "<th onclick='sortItems(\"Item Name\")'>Item Name</th>"+
-	"<th onclick='sortItems(\"Sales Backlog\")'>Sales Backlog</th>"+
-	"<th onclick='sortItems(\"Buy Order at\")'>Buy at</th>"+
-	"<th onclick='sortItems(\"Sell Offer at\")'>Sell at</th>"+
-	"<th onclick='sortItems(\"Profit per Item\")'>per Item</th>"+
-	"<th onclick='sortItems(\"Quantity\")'>Quantity</th>";
+	var headerFields = "<th onclick='sortItems(\"Item Name\")'>Item Name</th>" +
+		"<th onclick='sortItems(\"Sales Backlog\")'>Sales Backlog</th>" +
+		"<th onclick='sortItems(\"Buy Order at\")'>Buy at</th>" +
+		"<th onclick='sortItems(\"Sell Offer at\")'>Sell at</th>" +
+		"<th onclick='sortItems(\"Profit per Item\")'>per Item</th>" +
+		"<th onclick='sortItems(\"Quantity\")'>Quantity</th>";
 	if (maxOffers > 1) {
 		headerFields += "<th onclick='sortItems(\"Number of Offers\")'>Offers</th>";
 	}
 
 	headerFields += "<th onclick='sortItems(\"Total Profit\")'>Profit</th>";
 
-	if(transactionLog || expertMode){
-	headerFields += "<th>Actions</th>";
-	}
-	
-	var header = $('<tr>').html(headerFields);
+	if (transactionLog || expertMode) {
+		headerFields += "<th>Actions</th>";
+	}	var header = $('<tr>').html(headerFields);
 	table.append(header);
 
 	// Create table rows
-	calcData.forEach(function(item, index) { 
+	calcData.forEach(function (item, index) {
 
 		/* Name + Wiki + 24h Graph */
-		var rowFields = "<td><a target='_blank' href='https://hypixel-skyblock.fandom.com/wiki/"+item.name.toString().replace(" ","_")+"'>" + item.name;
-		if(expertMode){
-			rowFields += "<br><a target='_blank' href='https://bazaartracker.com/product/"+item.name.toString().replace(" ","_")+"'class='small'>24 Hour Graph</span>";
+		var rowFields = "<td><a target='_blank' href='https://hypixel-skyblock.fandom.com/wiki/" + item.name.toString().replace(" ", "_") + "'>" + item.name;
+		if (expertMode) {
+			rowFields += "<br><a target='_blank' href='https://bazaartracker.com/product/" + item.name.toString().replace(" ", "_") + "'class='small'>24 hour graph</span>";
 		}
 		rowFields += "</td>";
 
-		
+
+
+
 		/* Sales Backlog */
 		var color = "";
-		if(item.salesBacklog > 6) { color = "color-red"; } 
-		if(item.salesBacklog < 6) { color = "color-yellow";} 
-		if(item.salesBacklog < 4) { color = "color-black";} 
-		if(item.salesBacklog < 1) {color = "color-green";}
+		if (item.salesBacklog > 6) { color = "color-red"; }
+		if (item.salesBacklog < 6) { color = "color-yellow"; }
+		if (item.salesBacklog < 4) { color = "color-black"; }
+		if (item.salesBacklog < 1) { color = "color-green"; }
 
-		rowFields += "<td class='"+color+"' onclick='copyTextToClipboard(\""+item.salesBacklog.toFixed(1)+"\")'>" + numberWithCommas(item.salesBacklog.toFixed(1));
+		rowFields += "<td class='" + color + "' onclick='copyTextToClipboard(\"" + item.salesBacklog.toFixed(1) + "\")'>" + numberWithCommas(item.salesBacklog.toFixed(1));
+		if (expertMode) {
+			rowFields += "</br><span class='small " + color + "'>" + (item.salesPerDay).toFixed(0) + " a day</span>"
+		}
 		rowFields += "</td>"
 
 		/* BuyAt */
-		rowFields += "<td onclick='copyTextToClipboard(\""+item.buyPrice.toFixed(1)+"\")'>" + numberWithCommas(item.buyPrice.toFixed(1)); //<span id='BP"+item.name+"'></span>
-		if(expertMode){
-			if(item.buyOrders > 500) { color = "color-green"; } 
-			if(item.buyOrders < 500) { color = "color-black";} 
-			if(item.buyOrders < 100) { color = "color-yellow";} 
-			if(item.buyOrders < 50) {color = "color-red";}
+		rowFields += "<td onclick='copyTextToClipboard(\"" + item.buyPrice.toFixed(1) + "\")'>" + numberWithCommas(item.buyPrice.toFixed(1)); //<span id='BP"+item.name+"'></span>
+		if (expertMode) {
+			if (item.buyOrders > 500) { color = "color-green"; }
+			if (item.buyOrders < 500) { color = "color-black"; }
+			if (item.buyOrders < 100) { color = "color-yellow"; }
+			if (item.buyOrders < 50) { color = "color-red"; }
 
-			rowFields += "</br><span class='small "+color+"'>"+item.buyOrders+" Ord.</span>"	
+			rowFields += "</br><span class='small " + color + "'>" + item.buyOrders + " Ord.</span>"
 		}
 		rowFields += "</td>";
 
@@ -295,35 +306,35 @@ function updateDisplay() {
 
 
 		/* Sell At */
-		rowFields += "<td onclick='copyTextToClipboard(\""+item.sellPrice.toFixed(1)+"\")'>" + numberWithCommas(item.sellPrice.toFixed(1));
-		if(expertMode){
-			if(item.sellOrders > 500) { color = "color-green"; } 
-			if(item.sellOrders < 500) { color = "color-black";} 
-			if(item.sellOrders < 100) { color = "color-yellow";} 
-			if(item.sellOrders < 50) {color = "color-red";}
-			rowFields += "</br><span class='small "+color+"'>"+item.sellOrders+" Ord.</span>"	
+		rowFields += "<td onclick='copyTextToClipboard(\"" + item.sellPrice.toFixed(1) + "\")'>" + numberWithCommas(item.sellPrice.toFixed(1));
+		if (expertMode) {
+			if (item.sellOrders > 500) { color = "color-green"; }
+			if (item.sellOrders < 500) { color = "color-black"; }
+			if (item.sellOrders < 100) { color = "color-yellow"; }
+			if (item.sellOrders < 50) { color = "color-red"; }
+			rowFields += "</br><span class='small " + color + "'>" + item.sellOrders + " Ord.</span>"
 		}
 		rowFields += "</td>";
 
 		/* Per Item */
-		rowFields += "<td onclick='copyTextToClipboard(\""+item.profitPerItem.toFixed(1)+"\")'>" + numberWithCommas(item.profitPerItem.toFixed(1));
-		if(expertMode){
+		rowFields += "<td onclick='copyTextToClipboard(\"" + item.profitPerItem.toFixed(1) + "\")'>" + numberWithCommas(item.profitPerItem.toFixed(1));
+		if (expertMode) {
 		}
 		rowFields += "</td>";
 
 		/* Quantity */
-		rowFields += "<td onclick='copyTextToClipboard(\""+item.maxQuantity.toFixed(1)+"\")'>" + numberWithCommas(item.maxQuantity);
-		if(expertMode){
+		rowFields += "<td onclick='copyTextToClipboard(\"" + item.maxQuantity.toFixed(1) + "\")'>" + numberWithCommas(item.maxQuantity);
+		if (expertMode) {
 
-			var invs = (item.maxQuantity/2304).toFixed(1); /* /2304 = Inventare */
+			var invs = (item.maxQuantity / 2304).toFixed(1); /* /2304 = Inventare */
 
-			if(invs > 25) { color = "color-red"; } 
-			if(invs < 25) { color = "color-yellow";} 
-			if(invs < 15) { color = "color-black";} 
-			if(invs < 2) {color = "color-green";}
-			rowFields += "<br><span class='small "+color+"'>"+invs+" Inv.</span>";	
+			if (invs > 25) { color = "color-red"; }
+			if (invs < 25) { color = "color-yellow"; }
+			if (invs < 15) { color = "color-black"; }
+			if (invs < 2) { color = "color-green"; }
+			rowFields += "<br><span class='small " + color + "'>" + invs + " Inv.</span>";
 		}
-		rowFields +="</td>";
+		rowFields += "</td>";
 
 		//  If maxOffers is >1, an extra column is added to show
 		// the number of offers required to buy/sell that many items
@@ -332,37 +343,40 @@ function updateDisplay() {
 		}
 
 		rowFields += "<td>" + numberWithCommas(item.totalProfit.toFixed(0));
-		if(expertMode){
+		if (expertMode) {
 
-			var marginPercent = ((item.sellPrice/item.buyPrice)*100-100).toFixed(2);
+			var marginPercent = ((item.sellPrice / item.buyPrice) * 100 - 100).toFixed(2);
 
-			if(marginPercent > 500) { color = "color-green"; } 
-			if(marginPercent < 500) { color = "color-black";} 
-			if(marginPercent < 5) { color = "color-yellow";} 
-			if(marginPercent < 2) {color = "color-red";}
+			if (marginPercent > 500) { color = "color-green"; }
+			if (marginPercent < 500) { color = "color-black"; }
+			if (marginPercent < 5) { color = "color-yellow"; }
+			if (marginPercent < 2) { color = "color-red"; }
 
-			rowFields += "<br><span class='small nowrap "+color+"'>"+marginPercent+"%</span>"	
+			rowFields += "<br><span class='small nowrap " + color + "'>" + marginPercent + "%</span>"
 		}
-		rowFields +="</td>";
+		rowFields += "</td>";
 
 		/* Actions */
-		if(transactionLog || expertMode){
-		rowFields +="<td>";
-		/* TODO: Actions */
-		if(transactionLog){
-		rowFields +="<img width='24px' style='padding: 2px' src='img/chestBuy.png'>";	
-		rowFields +="<img width='24px' style='padding: 2px' src='img/chestSell.png'>";	
-		} 
-		if(expertMode){
-		rowFields +="<img width='26px' src='img/gray_dye.png'>"; 
-		rowFields +="<img width='26px' src='img/nether_star.png'>";
-		rowFields +="</td>";
+		if (transactionLog || expertMode) {
+			rowFields += "<td>";
+			/* TODO: Actions */
+			if (transactionLog) {
+				rowFields += "<img width='24px' style='padding: 2px' src='img/chestBuy.png'>";
+				rowFields += "<img width='24px' style='padding: 2px' src='img/chestSell.png'>";
+			}
+			if (expertMode) {
+				rowFields += "<img onclick='hideItem(\"" + item.name + "\")' width='26px' src='img/gray_dye.png'>";
+				rowFields += "<img onclick='favorite(\"" + item.name + "\")' width='26px' src='img/nether_star.png'>";
+				rowFields += "</td>";
+			}
 		}
-	}
-		var row = $('<tr class="highlight">').html(rowFields);
-
+		var classes = "highlight";
+		if(favorites.includes(item.name)){
+			classes += " favorite";
+		}
+		var row = $('<tr class="'+classes+'">').html(rowFields);
 		// Add to table
-	    table.append(row);
+		table.append(row);
 	});
 
 	// Update DOM
@@ -370,75 +384,230 @@ function updateDisplay() {
 
 	// Create explanation of missing items
 	var missingItemExplanation = '';
+
+	if (hidden.length > 0) {
+		hidden.sort((a, b) => (a.name > b.name) ? -1 : 1);
+		missingItemExplanation += '<p><b>Items excluded from the table because you hid them:</b><br/>' + hidden.map(function (o) { return (o.name + '<a style="color: blue" onclick="unhideItem(\'' + o.name + '\')"> (Unhide)</a>'); }).join(', ') + '</p>';
+	}
 	if (notProfitable.length > 0) {
 		notProfitable.sort((a, b) => (a.profitPerItem > b.profitPerItem) ? -1 : 1);
-		missingItemExplanation += '<p><b>Items excluded from the table because they are not profitable:</b><br/>' + notProfitable.map(function(o) { return (o.name + ' (' + Math.abs(o.profitPerItem).toFixed(1) + ' loss)'); }).join(', ') + '</p>';
+		missingItemExplanation += '<p><b>Items excluded from the table because they are not profitable:</b><br/>' + notProfitable.map(function (o) { return (o.name + ' (' + Math.abs(o.profitPerItem).toFixed(1) + ' loss)'); }).join(', ') + '</p>';
 	}
 	if (notAffordable.length > 0) {
 		notAffordable.sort((a, b) => (a.buyPrice > b.buyPrice) ? -1 : 1);
-		missingItemExplanation += '<p><b>Items excluded from the table because you cannot afford one:</b><br/>' + notAffordable.map(function(o) { return (o.name + ' (' + o.buyPrice.toFixed(1) + ' per item)'); }).join(', ') + '</p>';
+		missingItemExplanation += '<p><b>Items excluded from the table because you cannot afford one:</b><br/>' + notAffordable.map(function (o) { return (o.name + ' (' + o.buyPrice.toFixed(1) + ' per item)'); }).join(', ') + '</p>';
 	}
 	if (notSellable.length > 0) {
 		notSellable.sort((a, b) => (a.salesBacklog > b.salesBacklog) ? -1 : 1);
-		missingItemExplanation += '<p><b>Items excluded from the table because the sales backlog is too long:</b><br/>' + notSellable.map(function(o) { return (o.name + ' (' + o.salesBacklog.toFixed(1) + ' days)'); }).join(', ') + '</p>';
+		missingItemExplanation += '<p><b>Items excluded from the table because the sales backlog is too long:</b><br/>' + notSellable.map(function (o) { return (o.name + ' (' + o.salesBacklog.toFixed(1) + ' days)'); }).join(', ') + '</p>';
 	}
 	$('#missingItemExplanation').html(missingItemExplanation);
+	//#endregion
+
+	/* Transactionen */
+	if(transactionLog){
+	var transactionTable = $('<table style="margin-top:0px;border: none;">').addClass('results');
+	headerFields = "<th>Date</th><th>Item</th><th>Type</th><th>Price</th><th>Count</th><th>Saldo</th>";
+
+	var header = $('<tr>').html(headerFields);
+	transactionTable.append(header);
+
+	// Create table rows
+	transactions.forEach(function (item, index) {
+
+		/* Date */
+ 		var rowFields = "<td>" + item.date.toLocaleTimeString('en-us', {hour12:false, month:"short", day:"numeric"});
+		 rowFields += "</td>";
+
+		/* Name + Wiki + 24h Graph */
+		rowFields += "<td><a target='_blank' href='https://hypixel-skyblock.fandom.com/wiki/" + item.name.toString().replace(" ", "_") + "'>" + item.name;
+		if (expertMode) {
+			rowFields += "<br><a target='_blank' href='https://bazaartracker.com/product/" + item.name.toString().replace(" ", "_") + "'class='small'>24 hour graph</span>";
+		}
+		rowFields += "</td>";
+		/* Sell/BUY */
+		rowFields += "<td>"+item.type+"</td>";
+
+		/* Price */
+		rowFields += "<td><input onchange='alert(\"a\")' class='borderless-input' id='PR"+item.id+"' value='"+item.price+"' type='text'></td>";
+		//TODO Aktueller Preis!
+
+		/* Count */
+		rowFields += "<td><input class='borderless-input' id='CO"+item.id+"' value='"+item.count+"' type='text'></td>";
+
+		var prefix = 1;
+		if(item.type === "buy"){
+			prefix = -1;
+			color = "color-red";
+		} else {
+			color = "color-green"
+		}
+
+		item.saldo = prefix*item.price*item.count;
+
+		rowFields += "<td class='" + color + "'>" + numberWithCommas((item.saldo).toFixed(0)) + "</td>";
+		
+
+		var row = $('<tr class="highlight">').html(rowFields);
+
+		// Add to table
+		transactionTable.append(row);
+	});
+
+	//TODO Summe
+
+	var sum = "<tr class='borderless'><td></td><td></td><td></td><td></td><td></td><td class='color-green'>SUMME</td></tr>";
+	transactionTable.append(sum);
+	// Update DOM
+	$('#transactionsTable').html(transactionTable);
+	} else {
+		$('#transactionsTable').html("");	
+	}
+
+	//save on every input change
+	save();
 }
+
+
 
 // Run on startup:
 
 // Bind UI inputs to set internal values and update UI
 $('#maxOutlay').val(maxOutlay);
-$('#maxOutlay').keyup(function() {
-    maxOutlay = $( this ).val();
-    updateDisplay();
+$('#maxOutlay').keyup(function () {
+	maxOutlay = $(this).val();
+	updateDisplay();
 });
 $('#maxOffers').val(maxOffers);
-$('#maxOffers').keyup(function() {
-    maxOffers = $( this ).val();
-    updateDisplay();
+$('#maxOffers').keyup(function () {
+	maxOffers = $(this).val();
+	updateDisplay();
 });
 $('#maxBacklog').val(maxBacklog);
-$('#maxBacklog').keyup(function() {
-    maxBacklog = $( this ).val();
-    updateDisplay();
+$('#maxBacklog').keyup(function () {
+	maxBacklog = $(this).val();
+	updateDisplay();
 });
 
-$('input.settings').on('change', function() {
+$('input.settings').on('change', function () {
 	expertMode = $('input#expertMode').is(":checked");
 	transactionLog = $('input#transactionLog').is(":checked");
 	npcDeals = $('input#npcDeals').is(":checked");
 	updateDisplay();
 });
 
-$('button#helpButton').click(function(){
-  $('div.help').toggle("fast");
+$('button#helpButton').click(function () {
+	$('div.help').toggle("fast");
 });
 
-$('button#refreshButton').click(function(){
+$('button#refreshButton').click(function () {
 	getProductList();
 
 	/* https://sky.coflnet.com/item/FLINT?itemFilter=&range=week */
 });
 
-// Get the data from the Skyblock API
-getProductList();
+//local Settings
+load();
 
+
+
+function favorite(itemName) {
+	if(favorites.includes(itemName)){
+		favorites = favorites.filter(function (item) {
+			return item !== itemName;
+		})
+	} else {
+		favorites.push(itemName);
+	}
+	updateDisplay();
+}
+
+function hideItem(itemName) {
+	hiddenItems.push(itemName);
+	updateDisplay();
+}
+
+function unhideItem(itemName) {
+	hiddenItems = hiddenItems.filter(function (item) {
+		return item !== itemName;
+	})
+	updateDisplay();
+}
+
+function save() {
+	localStorage.setItem("favorites", JSON.stringify(favorites));
+	localStorage.setItem("hiddenItems", JSON.stringify(hiddenItems));
+	localStorage.setItem("expertMode", expertMode);
+	localStorage.setItem("transactionLog", transactionLog);
+	localStorage.setItem("npcDeals", npcDeals);
+	localStorage.setItem("maxOutlay", maxOutlay);
+	localStorage.setItem("maxOffers", maxOffers);
+	localStorage.setItem("maxBacklog", maxBacklog);
+}
+
+function load() {
+	hiddenItemsLoad = JSON.parse(localStorage.getItem("hiddenItems"));
+	if (hiddenItemsLoad !== null) {
+		hiddenItems = hiddenItemsLoad;
+	}
+
+	favoritesLoad = JSON.parse(localStorage.getItem("favorites"));
+	if (favoritesLoad !== null) {
+		favorites = favoritesLoad;
+	}
+	
+	expertModeLoad = JSON.parse(localStorage.getItem("expertMode"));
+	if (expertModeLoad !== null) {
+		expertMode = expertModeLoad;
+		document.getElementById("expertMode").checked = expertMode;
+	}
+	transactionLogLoad = JSON.parse(localStorage.getItem("transactionLog"));
+	if (transactionLogLoad !== null) {
+		transactionLog = transactionLogLoad;
+		document.getElementById("transactionLog").checked = transactionLog;
+	}
+
+	npcDealsLoad = JSON.parse(localStorage.getItem("npcDeals"));
+	if (npcDealsLoad !== null) {
+		npcDeals = npcDealsLoad;
+		document.getElementById("npcDeals").checked = npcDeals;
+	}
+
+	maxOutlayLoad = JSON.parse(localStorage.getItem("maxOutlay"));
+	if (maxOutlayLoad > 0) { 
+		maxOutlay = maxOutlayLoad;
+		document.getElementById("maxOutlay").value = maxOutlay; 
+	};
+
+	maxOffersLoad = JSON.parse(localStorage.getItem("maxOffers"));
+	if (maxOffersLoad > 0) { 
+		maxOffers = maxOffersLoad;
+		document.getElementById("maxOffers").value = maxOffers; 
+	};
+
+	maxBacklogLoad = JSON.parse(localStorage.getItem("maxBacklog"));
+	if (maxBacklogLoad > 0) { 
+		maxBacklog = maxBacklogLoad;
+		document.getElementById("maxBacklog").value = maxBacklog; 
+	};
+
+	// Get the data from the Skyblock API
+	getProductList();
+}
 
 /* Helper */
-
 const average = (arr, name) => {
 	const na = name;
 	const { length } = arr;
 	return arr.reduce((acc, val) => {
-	   return acc + (val.avg/length);
+		return acc + (val.avg / length);
 	}, 0);
- };
+};
 
 /* function average(prices){
 
 	let filteredData = prices.filter(({ gender }) => 'female' == 'female'),
-    average = filteredData.reduce((r, c) => r + c.avg, 0) / filteredData.length;
+	average = filteredData.reduce((r, c) => r + c.avg, 0) / filteredData.length;
 
 
 
@@ -448,17 +617,16 @@ const average = (arr, name) => {
 } */
 
 function numberWithCommas(x) {
-    return x.toString().replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, " ");
+	return x.toString().replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, " ");
 }
 
 function copyTextToClipboard(text) {
 	if (!navigator.clipboard) {
-	  return;
+		return;
 	}
-	navigator.clipboard.writeText(text).then(function() {
-	  console.log('Async: Copying to clipboard was successful!');
-	}, function(err) {
-	  console.error('Async: Could not copy text: ', err);
+	navigator.clipboard.writeText(text).then(function () {
+		console.log('Async: Copying to clipboard was successful!');
+	}, function (err) {
+		console.error('Async: Could not copy text: ', err);
 	});
-  }
-  
+}
