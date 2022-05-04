@@ -182,4 +182,14 @@ div#footer {
   border-style: none;
   line-height: 20px;
   width: 100px;
+  background: none;
+  font-family: "Minecraft", sans-serif;
+  font-size: 1em;
+  padding: 0.2em;
+  margin-left: 0.5em;
+  margin-right: 0.5em;
+}
+
+.text-end{
+  text-align: end;
 }

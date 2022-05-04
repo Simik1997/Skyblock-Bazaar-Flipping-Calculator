@@ -20,7 +20,7 @@ var sortByNumOffers = false;
 var sortByTotalProfit = true;
 var hiddenItems = [''];
 var favorites = [''];
-var transactions = [{id: 1,date: new Date(),type: "buy", name: "Enchanted Pork", price: 1000.3, count:2000, countProgressed: 1000},{id: 2,date: new Date(),type: "sell", name: "Enchanted Pork", price: 1024.1, count:2000, countProgressed: 1000}];
+var transactions = [{id: uuidv4(),date: new Date(),type: "buy", name: "Enchanted Pork", price: 1000.3, count:2000, countProgressed: 1000},{id: uuidv4(),date: new Date(),type: "sell", name: "Enchanted Pork", price: 1024.1, count:2000, countProgressed: 1000}];
 
 var expertMode = false;
 var transactionLog = false;
@@ -277,14 +277,14 @@ function updateDisplay() {
 		if (item.salesBacklog < 4) { color = "color-black"; }
 		if (item.salesBacklog < 1) { color = "color-green"; }
 
-		rowFields += "<td class='" + color + "' onclick='copyTextToClipboard(\"" + item.salesBacklog.toFixed(1) + "\")'>" + numberWithCommas(item.salesBacklog.toFixed(1));
+		rowFields += "<td class='text-end " + color + "' onclick='copyTextToClipboard(\"" + item.salesBacklog.toFixed(1) + "\")'>" + numberWithCommas(item.salesBacklog.toFixed(1));
 		if (expertMode) {
 			rowFields += "</br><span class='small " + color + "'>" + (item.salesPerDay).toFixed(0) + " a day</span>"
 		}
 		rowFields += "</td>"
 
 		/* BuyAt */
-		rowFields += "<td onclick='copyTextToClipboard(\"" + item.buyPrice.toFixed(1) + "\")'>" + numberWithCommas(item.buyPrice.toFixed(1)); //<span id='BP"+item.name+"'></span>
+		rowFields += "<td class='text-end' onclick='copyTextToClipboard(\"" + item.buyPrice.toFixed(1) + "\")'>" + numberWithCommas(item.buyPrice.toFixed(1)); //<span id='BP"+item.name+"'></span>
 		if (expertMode) {
 			if (item.buyOrders > 500) { color = "color-green"; }
 			if (item.buyOrders < 500) { color = "color-black"; }
@@ -306,7 +306,7 @@ function updateDisplay() {
 
 
 		/* Sell At */
-		rowFields += "<td onclick='copyTextToClipboard(\"" + item.sellPrice.toFixed(1) + "\")'>" + numberWithCommas(item.sellPrice.toFixed(1));
+		rowFields += "<td class='text-end' onclick='copyTextToClipboard(\"" + item.sellPrice.toFixed(1) + "\")'>" + numberWithCommas(item.sellPrice.toFixed(1));
 		if (expertMode) {
 			if (item.sellOrders > 500) { color = "color-green"; }
 			if (item.sellOrders < 500) { color = "color-black"; }
@@ -317,13 +317,13 @@ function updateDisplay() {
 		rowFields += "</td>";
 
 		/* Per Item */
-		rowFields += "<td onclick='copyTextToClipboard(\"" + item.profitPerItem.toFixed(1) + "\")'>" + numberWithCommas(item.profitPerItem.toFixed(1));
+		rowFields += "<td class='text-end' onclick='copyTextToClipboard(\"" + item.profitPerItem.toFixed(1) + "\")'>" + numberWithCommas(item.profitPerItem.toFixed(1));
 		if (expertMode) {
 		}
 		rowFields += "</td>";
 
 		/* Quantity */
-		rowFields += "<td onclick='copyTextToClipboard(\"" + item.maxQuantity.toFixed(1) + "\")'>" + numberWithCommas(item.maxQuantity);
+		rowFields += "<td class='text-end' onclick='copyTextToClipboard(\"" + item.maxQuantity.toFixed(1) + "\")'>" + numberWithCommas(item.maxQuantity);
 		if (expertMode) {
 
 			var invs = (item.maxQuantity / 2304).toFixed(1); /* /2304 = Inventare */
@@ -342,7 +342,7 @@ function updateDisplay() {
 			rowFields += "<td>" + numberWithCommas(item.numOffersRequired) + "</td>";
 		}
 
-		rowFields += "<td>" + numberWithCommas(item.totalProfit.toFixed(0));
+		rowFields += "<td class='text-end'>" + numberWithCommas(item.totalProfit.toFixed(0));
 		if (expertMode) {
 
 			var marginPercent = ((item.sellPrice / item.buyPrice) * 100 - 100).toFixed(2);
@@ -405,9 +405,9 @@ function updateDisplay() {
 	//#endregion
 
 	/* Transactionen */
-	if(transactionLog){
+	if(transactionLog && transactions.length > 0){
 	var transactionTable = $('<table style="margin-top:0px;border: none;">').addClass('results');
-	headerFields = "<th>Date</th><th>Item</th><th>Type</th><th>Price</th><th>Count</th><th>Saldo</th>";
+	headerFields = "<th>Date</th><th>Item</th><th>Type</th><th>Price</th><th>Count</th><th>Saldo</th><th>Actions</th>";
 
 	var header = $('<tr>').html(headerFields);
 	transactionTable.append(header);
@@ -426,14 +426,22 @@ function updateDisplay() {
 		}
 		rowFields += "</td>";
 		/* Sell/BUY */
-		rowFields += "<td>"+item.type+"</td>";
+		rowFields += "<td><select class='borderless-input' id='TY"+item.id+"' onchange='chanceType(\""+item.id+"\")'>";
+
+		if (item.type ==="sell"){
+			rowFields += "<option value='sell' selected>sell</option><option value='buy'>buy</option>";
+		} else {
+			rowFields += "<option value='sell'>sell</option><option value='buy' selected>buy</option>";
+		}
+		
+		"</select></td>";
 
 		/* Price */
-		rowFields += "<td><input onchange='alert(\"a\")' class='borderless-input' id='PR"+item.id+"' value='"+item.price+"' type='text'></td>";
+		rowFields += "<td><input onchange='chancePrice(\""+item.id+"\")' class='text-end borderless-input' id='PR"+item.id+"' value='"+item.price+"' type='text'></td>";
 		//TODO Aktueller Preis!
 
 		/* Count */
-		rowFields += "<td><input class='borderless-input' id='CO"+item.id+"' value='"+item.count+"' type='text'></td>";
+		rowFields += "<td><input onchange='chanceCount(\""+item.id+"\")' class='text-end borderless-input' id='CO"+item.id+"' value='"+item.count+"' type='text'></td>";
 
 		var prefix = 1;
 		if(item.type === "buy"){
@@ -444,9 +452,24 @@ function updateDisplay() {
 		}
 
 		item.saldo = prefix*item.price*item.count;
-
-		rowFields += "<td class='" + color + "'>" + numberWithCommas((item.saldo).toFixed(0)) + "</td>";
+		rowFields += "<td class='text-end " + color + "'>" + numberWithCommas((item.saldo).toFixed(0)) + "</td>";
 		
+
+		/* Actions */
+		rowFields += "<td>";
+		if(item.type === "buy"){
+		rowFields += "<img onclick='flipBuyTransaction(\""+item.id+"\")' width='24px' style='padding: 2px' src='img/chestSell.png'>";
+		} else {
+		rowFields += "<img onclick='flipSellTransaction(\""+item.id+"\")' width='24px' style='padding: 2px' src='img/chestBuy.png'>";
+		}
+
+		/* Delete */
+		rowFields += "<img onclick='deleteTransaction(\""+item.id+"\")' width='24px' style='padding: 2px' src='img/lava_bucket.png'>";
+		/* Copy */
+		rowFields += "<img onclick='copyTransaction(\""+item.id+"\")' width='24px' style='padding: 2px' src='img/copy_dye.png'>";
+
+		rowFields += "</td>";
+
 
 		var row = $('<tr class="highlight">').html(rowFields);
 
@@ -454,9 +477,16 @@ function updateDisplay() {
 		transactionTable.append(row);
 	});
 
-	//TODO Summe
+	//saldo
+	var saldo = transactions.reduce((r, c) => r + c.saldo, 0).toFixed(0)
 
-	var sum = "<tr class='borderless'><td></td><td></td><td></td><td></td><td></td><td class='color-green'>SUMME</td></tr>";
+	if(saldo < 0){
+		color = "color-red";
+	} else {
+		color = "color-green"
+	}
+
+	var sum = "<tr class='borderless'><td class='color-red' onclick='deleteAllTransactions(\"a\");'>DELETE</td><td></td><td></td><td></td><td></td><td class='text-end "+color+"'>"+numberWithCommas(saldo)+"</td></tr>";
 	transactionTable.append(sum);
 	// Update DOM
 	$('#transactionsTable').html(transactionTable);
@@ -468,7 +498,94 @@ function updateDisplay() {
 	save();
 }
 
+function deleteAllTransactions(a){
+	transactions = [];
+	updateDisplay();
+}
 
+function copyTransaction(item){
+	var result = transactions.filter(obj => {
+		return obj.id === item;
+	})
+	var orginal = result[0];
+
+	orginal.date = new Date();
+	orginal.id = uuidv4();
+
+	transactions.push(orginal);
+	updateDisplay();
+}
+
+function flipBuyTransaction(item){
+	var result = transactions.filter(obj => {
+		return obj.id === item;
+	})
+	var orginal = JSON.parse(JSON.stringify(result[0])); //TO COPY, not REFERENZ
+
+	orginal.date = new Date();
+	orginal.id = uuidv4();
+	orginal.type = "sell";
+
+	transactions.push(orginal);
+	updateDisplay();
+}
+
+function flipSellTransaction(item){
+	var result = transactions.filter(obj => {
+		return obj.id === item;
+	})
+	var orginal = JSON.parse(JSON.stringify(result[0]));
+
+	orginal.date = new Date();
+	orginal.id = uuidv4();
+	orginal.type = "buy";
+
+	transactions.push(orginal);
+	updateDisplay();
+}
+
+
+function chanceType(item){
+	var type = document.getElementById("TY"+item).value;
+
+	var result = transactions.filter(obj => {
+		return obj.id === item;
+	})
+
+	result[0].type = type;
+	updateDisplay();
+}
+
+function chancePrice(item){
+	var price = document.getElementById("PR"+item).value;
+
+	var result = transactions.filter(obj => {
+		return obj.id === item;
+	})
+
+	result[0].price = price;
+	updateDisplay();
+}
+
+function chanceCount(item){
+	var price = document.getElementById("CO"+item).value;
+
+	var result = transactions.filter(obj => {
+		return obj.id === item;
+	})
+
+	result[0].count = price;
+	updateDisplay();
+}
+
+function deleteTransaction(item){
+	var result = transactions.filter(obj => {
+		return obj.id !== item;
+	})
+
+	transactions = result;
+	updateDisplay();
+}
 
 // Run on startup:
 
@@ -509,7 +626,9 @@ $('button#refreshButton').click(function () {
 //local Settings
 load();
 
-
+function transactionSaldo(transactions){
+	summe = transactions.reduce((r, c) => r + c.saldo, 0).toFixed(0)
+}
 
 function favorite(itemName) {
 	if(favorites.includes(itemName)){
@@ -630,3 +749,11 @@ function copyTextToClipboard(text) {
 		console.error('Async: Could not copy text: ', err);
 	});
 }
+
+function uuidv4() {
+	return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+	  (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+	);
+  }
+  
+ 
