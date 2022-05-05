@@ -14,14 +14,16 @@
 	Settings Speichern x
 	Favorite x
 
-	Transactions + Speichern TODO
+	Transactions + Speichern x
 		Date, Stück, Kaufpreis, Preis aktuell (rot bei großer abweichung), Verkaufspreis, Verkaufspreis aktuell, Actions: Verkauft, Mehr gekauft
-	
-		Fehlt: buy & sell aus Bazaar, aktuelle Item Preise anzeigen
+		 buy & sell aus Bazaar, aktuelle Item Preise anzeigen
 
-
+	Taschenrechner
 	NPC Deals ergänzen
-	
+	Suchleiste 
+	TAXs
+	Table Formation
+
 Ideen
 Darkmode
 Sals / Day
@@ -67,16 +69,22 @@ Week Durchschnitt
 			<td>
 				Max backlog
 			</td>
+			<td>
+				Tax rate
+			</td>
 		</tr>
 		<tr>
 			<td>
-				<input class="input" id="maxOutlay" type="text">
+				<input class="input" id="maxOutlay" type="text"> <!-- onchange="updateDisplay();" -->
 			</td>
 			<td>
 				<input id="maxOffers" type="text">
 			</td>
 			<td>
 				<input id="maxBacklog" type="text"> Days
+			</td>
+			<td>
+				<input style="width: 60px;" id="taxRate" type="text"> %
 			</td>
 		</tr>
 		<tr>
@@ -97,6 +105,11 @@ Week Durchschnitt
 					<p>Exclude items with long backlogs: In some cases, certain items may be selling very slowly,
 						leading to a high risk that you will be left with the items, not the profit. This control
 						excludes items from the list that have a backlog of more than a certain number of days.</p>
+				</div>
+			</td>
+			<td>
+				<div class="help">
+					<p>Taxrate you see on the Bazzar. Needed to calculate the Profit in transaction log. (Only on sales)</p>
 				</div>
 			</td>
 		</tr>
@@ -169,6 +182,7 @@ Week Durchschnitt
 
 	<script src="https://code.jquery.com/jquery-3.4.1.min.js"
 		integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.3/moment.min.js"></script>
 	<script src="code.js"></script>
 </body>
 

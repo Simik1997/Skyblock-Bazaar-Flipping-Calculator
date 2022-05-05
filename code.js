@@ -10,6 +10,7 @@ var apiData = {};
 var maxOutlay = 1000000;
 var maxOffers = 1;
 var maxBacklog = 7;
+var taxRate = 1.25;
 var sortByName = false;
 var sortBySalesBacklog = false;
 var sortByBuyOrder = false;
@@ -20,7 +21,9 @@ var sortByNumOffers = false;
 var sortByTotalProfit = true;
 var hiddenItems = [''];
 var favorites = [''];
-var transactions = [{id: uuidv4(),date: new Date(),type: "buy", name: "Enchanted Pork", price: 1000.3, count:2000, countProgressed: 1000},{id: uuidv4(),date: new Date(),type: "sell", name: "Enchanted Pork", price: 1024.1, count:2000, countProgressed: 1000}];
+var transactions = []; //{id: uuidv4(),date: new Date(),type: "buy", name: "Enchanted Pork", price: 1000.3, count:2000, countProgressed: 1000},{id: uuidv4(),date: new Date(),type: "sell", name: "Enchanted Pork", price: 1024.1, count:2000, countProgressed: 1000}
+var calcData = [];
+var allData = [];
 
 var expertMode = false;
 var transactionLog = false;
@@ -146,12 +149,14 @@ function updateDisplay() {
 	//#region Items
 	// First, set up a list to store our calculated data that will
 	// appear in the table
-	var calcData = [];
+	calcData = [];
+	allData = [];
 	// And lists to store reasons why items were missed from the table
 	var notProfitable = [];
 	var notAffordable = [];
 	var notSellable = [];
 	var hidden = [];
+	
 
 	// Iterate over all products...
 	for (id in apiData.products) {
@@ -177,7 +182,7 @@ function updateDisplay() {
 			item.name = prettify(id);
 			item.sellPrice = lowestSellOffer - 0.1;
 			item.buyPrice = highestBuyOrder + 0.1;
-			item.profitPerItem = item.sellPrice - item.buyPrice;
+			item.profitPerItem = (item.sellPrice - item.buyPrice) - item.sellPrice*(taxRate/100); //- taxes
 
 			// Calculate the sales backlog - how many days' worth of sell orders are
 			// already on the marketplace - higher backlogs = higher chance you'll be
@@ -192,7 +197,7 @@ function updateDisplay() {
 			affordableQuantity = Math.floor(maxOutlay / item.buyPrice);
 			item.maxQuantity = Math.min(affordableQuantity, maxOffers * MAX_QUANTITY_PER_ORDER);
 			item.numOffersRequired = Math.ceil(item.maxQuantity / MAX_QUANTITY_PER_ORDER);
-			item.totalProfit = (item.sellPrice - item.buyPrice) * item.maxQuantity
+			item.totalProfit = item.profitPerItem * item.maxQuantity
 
 			//ExpertViews
 			item.buyOrders = apiData.products[id].quick_status.buyOrders;
@@ -202,6 +207,8 @@ function updateDisplay() {
 			// least one item, and the sales backlog is below our threshold. Otherwise
 			// add the name of the item to a separate list so we can note at the bottom
 			// of the table why it's not being displayed.
+			allData.push(item);
+
 			if (item.profitPerItem < 0.1) {
 				notProfitable.push(item);
 			} else if (item.maxQuantity <= 0) {
@@ -361,8 +368,8 @@ function updateDisplay() {
 			rowFields += "<td>";
 			/* TODO: Actions */
 			if (transactionLog) {
-				rowFields += "<img width='24px' style='padding: 2px' src='img/chestBuy.png'>";
-				rowFields += "<img width='24px' style='padding: 2px' src='img/chestSell.png'>";
+				rowFields += "<img onclick='buyTransaction(\""+item.id+"\")' width='24px' style='padding: 2px' src='img/chestBuy.png'>";
+				rowFields += "<img onclick='sellTransaction(\""+item.id+"\")' width='24px' style='padding: 2px' src='img/chestSell.png'>";
 			}
 			if (expertMode) {
 				rowFields += "<img onclick='hideItem(\"" + item.name + "\")' width='26px' src='img/gray_dye.png'>";
@@ -416,7 +423,7 @@ function updateDisplay() {
 	transactions.forEach(function (item, index) {
 
 		/* Date */
- 		var rowFields = "<td>" + item.date.toLocaleTimeString('en-us', {hour12:false, month:"short", day:"numeric"});
+ 		var rowFields = "<td>" + moment(item.date).fromNow();   /* .toLocaleTimeString('en-us', {hour12:false, month:"short", day:"numeric"}); */
 		 rowFields += "</td>";
 
 		/* Name + Wiki + 24h Graph */
@@ -437,8 +444,53 @@ function updateDisplay() {
 		"</select></td>";
 
 		/* Price */
-		rowFields += "<td><input onchange='chancePrice(\""+item.id+"\")' class='text-end borderless-input' id='PR"+item.id+"' value='"+item.price+"' type='text'></td>";
-		//TODO Aktueller Preis!
+		rowFields += "<td><input onchange='chancePrice(\""+item.id+"\")' class='text-end borderless-input' id='PR"+item.id+"' value='"+item.price+"' type='text'>";
+		if (expertMode) {
+			item.price = parseFloat(item.price);
+
+			var buyPrice = parseFloat(getBuyPriceByName(item.name).toFixed(2)); 
+			var buyColor = "color-black";
+
+			if(item.type === "buy"){
+			//if order is fullfilled, colors should be different > you buy at 100 new buy is 200 > profit 
+			if(item.price === buyPrice){ //0.00%
+				buyColor = "color-green"
+			} else if (item.price < buyPrice*1.02 && item.price > buyPrice*-1.02){ //2%
+				buyColor = "color-black"
+			} else if (item.price < buyPrice*1.05 && item.price > buyPrice*-1.05){ //5%
+				buyColor = "color-yellow"
+			} else{ //bigger diffrence
+				buyColor = "color-red"
+			}
+			} else {
+				buyColor = "color-gray"
+			}
+			
+			var sellPrice = parseFloat(getSellPriceByName(item.name).toFixed(2)); 
+			var sellColor = "color-black";
+
+			if(item.type === "sell"){
+			//if order is fullfilled, colors should be different > you buy at 100 new buy is 200 > profit 
+			if(item.price === sellPrice){ //0.00%
+				sellColor = "color-green"
+			} else if (item.price*-1.02 < sellPrice && item.price*1.02 > sellPrice){ //2%
+				sellColor = "color-black"
+			} else if (item.price*-1.05 < sellPrice&& item.price*1.05 > sellPrice){ //5%
+				sellColor = "color-yellow"
+			} else{ //bigger diffrence
+				sellColor = "color-red"
+			}
+			} else {
+				sellColor = "color-gray"
+			}
+
+			rowFields += "<br><img width='12px' style='padding: 2px' src='img/chestBuy.png'><span class='small nowrap " + buyColor + "'>" + buyPrice +"</span>"
+			rowFields += "<img width='12px' style='padding: 2px' src='img/chestSell.png'><span class='small nowrap " + sellColor + "'>" + sellPrice +"</span>"
+		}
+
+
+		rowFields += "</td>";
+
 
 		/* Count */
 		rowFields += "<td><input onchange='chanceCount(\""+item.id+"\")' class='text-end borderless-input' id='CO"+item.id+"' value='"+item.count+"' type='text'></td>";
@@ -479,6 +531,13 @@ function updateDisplay() {
 
 	//saldo
 	var saldo = transactions.reduce((r, c) => r + c.saldo, 0).toFixed(0)
+	var taxes = 0;
+	transactions.forEach(tr => {
+		if(tr.saldo > 0){//Taxes only on SELL
+			taxes += tr.saldo*(taxRate/100);
+		}
+	});
+	taxes = taxes.toFixed(0);
 
 	if(saldo < 0){
 		color = "color-red";
@@ -486,7 +545,8 @@ function updateDisplay() {
 		color = "color-green"
 	}
 
-	var sum = "<tr class='borderless'><td class='color-red' onclick='deleteAllTransactions(\"a\");'>DELETE</td><td></td><td></td><td></td><td></td><td class='text-end "+color+"'>"+numberWithCommas(saldo)+"</td></tr>";
+	var sum = "<tr class='borderless'><td class='color-red' onclick='deleteAllTransactions(\"a\");'>DELETE</br></br></td><td></td><td></td><td></td><td>growth:</br>taxes:</br>profit:</br></td>";
+	sum += "<td class='text-end'><span class='"+color+"'>"+numberWithCommas(saldo)+"</span></br><span class='color-red'>-"+numberWithCommas(taxes)+"</span></br><span class='"+color+"'>"+numberWithCommas(saldo-taxes)+"</span></br></td></tr>";
 	transactionTable.append(sum);
 	// Update DOM
 	$('#transactionsTable').html(transactionTable);
@@ -498,7 +558,56 @@ function updateDisplay() {
 	save();
 }
 
-function deleteAllTransactions(a){
+function getBuyPriceByName(itemName){
+	var result = allData.filter(obj => {
+		return obj.name === itemName;
+	})
+
+	return result[0].buyPrice;
+}
+
+function getSellPriceByName(itemName){
+	var result = allData.filter(obj => {
+		return obj.name === itemName;
+	})
+
+	return result[0].sellPrice;
+}
+
+function buyTransaction(item){
+	var result = calcData.filter(obj => {
+		return obj.id === item;
+	})
+	var copy = JSON.parse(JSON.stringify(result[0])); //TO COPY, not REFERENZ
+
+	copy.date = new Date();
+	copy.id = uuidv4();
+	copy.type = "buy";
+	copy.price = copy.buyPrice.toFixed(1);
+	copy.count = copy.maxQuantity.toFixed(1);
+
+	transactions.push(copy);
+	updateDisplay();
+}
+
+function sellTransaction(item){
+	var result = calcData.filter(obj => {
+		return obj.id === item;
+	})
+	var copy = JSON.parse(JSON.stringify(result[0])); //TO COPY, not REFERENZ
+
+	copy.date = new Date();
+	copy.id = uuidv4();
+	copy.type = "sell";
+	copy.price = copy.sellPrice.toFixed(1);
+	copy.count = copy.maxQuantity.toFixed(1);
+
+	transactions.push(copy);
+	updateDisplay();
+}
+
+
+function deleteAllTransactions(){
 	transactions = [];
 	updateDisplay();
 }
@@ -507,7 +616,7 @@ function copyTransaction(item){
 	var result = transactions.filter(obj => {
 		return obj.id === item;
 	})
-	var orginal = result[0];
+	var orginal = JSON.parse(JSON.stringify(result[0])); //TO COPY, not REFERENZ
 
 	orginal.date = new Date();
 	orginal.id = uuidv4();
@@ -606,6 +715,12 @@ $('#maxBacklog').keyup(function () {
 	updateDisplay();
 });
 
+$('#taxRate').val(taxRate);
+$('#taxRate').keyup(function () {
+	taxRate = $(this).val();
+	updateDisplay();
+});
+
 $('input.settings').on('change', function () {
 	expertMode = $('input#expertMode').is(":checked");
 	transactionLog = $('input#transactionLog').is(":checked");
@@ -625,10 +740,6 @@ $('button#refreshButton').click(function () {
 
 //local Settings
 load();
-
-function transactionSaldo(transactions){
-	summe = transactions.reduce((r, c) => r + c.saldo, 0).toFixed(0)
-}
 
 function favorite(itemName) {
 	if(favorites.includes(itemName)){
@@ -656,12 +767,14 @@ function unhideItem(itemName) {
 function save() {
 	localStorage.setItem("favorites", JSON.stringify(favorites));
 	localStorage.setItem("hiddenItems", JSON.stringify(hiddenItems));
+	localStorage.setItem("transactions", JSON.stringify(transactions));
 	localStorage.setItem("expertMode", expertMode);
 	localStorage.setItem("transactionLog", transactionLog);
 	localStorage.setItem("npcDeals", npcDeals);
 	localStorage.setItem("maxOutlay", maxOutlay);
 	localStorage.setItem("maxOffers", maxOffers);
 	localStorage.setItem("maxBacklog", maxBacklog);
+	localStorage.setItem("taxRate", taxRate);
 }
 
 function load() {
@@ -673,6 +786,11 @@ function load() {
 	favoritesLoad = JSON.parse(localStorage.getItem("favorites"));
 	if (favoritesLoad !== null) {
 		favorites = favoritesLoad;
+	}
+
+	transactionsLoad = JSON.parse(localStorage.getItem("transactions"));
+	if (transactionsLoad !== null) {
+		transactions = transactionsLoad;
 	}
 	
 	expertModeLoad = JSON.parse(localStorage.getItem("expertMode"));
@@ -710,6 +828,12 @@ function load() {
 		document.getElementById("maxBacklog").value = maxBacklog; 
 	};
 
+	taxRateLoad = JSON.parse(localStorage.getItem("taxRate"));
+	if (taxRateLoad > 0) { 
+		taxRate = taxRateLoad;
+		document.getElementById("taxRate").value = taxRate; 
+	};
+	
 	// Get the data from the Skyblock API
 	getProductList();
 }
@@ -755,5 +879,3 @@ function uuidv4() {
 	  (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
 	);
   }
-  
- 

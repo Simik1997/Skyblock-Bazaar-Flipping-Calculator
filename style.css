@@ -114,6 +114,7 @@ div.help p {
 
 /* Table formatting */
 table {
+  width: 90%;
   margin: 2em auto;
   text-align: center;
 }
@@ -174,6 +175,10 @@ div#footer {
   color: #000;
 }
 
+.color-gray{
+  color: #555555;
+}
+
 .favorite {
   background-color: rgba(255, 222, 152, 0.678)
 }
@@ -185,9 +190,6 @@ div#footer {
   background: none;
   font-family: "Minecraft", sans-serif;
   font-size: 1em;
-  padding: 0.2em;
-  margin-left: 0.5em;
-  margin-right: 0.5em;
 }
 
 .text-end{
