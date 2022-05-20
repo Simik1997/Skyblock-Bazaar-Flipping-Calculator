@@ -28,6 +28,7 @@ var allData = [];
 var expertMode = false;
 var transactionLog = false;
 var npcDeals = false;
+var shortNumbers = false;
 
 // Item name lookups for certain items where just transforming the name
 // to sentence case isn't enough
@@ -50,6 +51,11 @@ ITEM_NAMES_LOOKUP.set('LOG:2', 'Birch Log');
 ITEM_NAMES_LOOKUP.set('LOG_2:1', 'Dark Oak Log');
 ITEM_NAMES_LOOKUP.set('LOG_2', 'Acacia Log');
 ITEM_NAMES_LOOKUP.set('LOG:3', 'Jungle Log');
+
+/* AUTO REFRESH! */
+const interval = setInterval(function() {
+	getProductList();
+  }, 60000); //60 sec
 
 // Basic API request function
 function request(endpoint, params, callback) {
@@ -156,7 +162,7 @@ function updateDisplay() {
 	var notAffordable = [];
 	var notSellable = [];
 	var hidden = [];
-	
+
 
 	// Iterate over all products...
 	for (id in apiData.products) {
@@ -182,7 +188,7 @@ function updateDisplay() {
 			item.name = prettify(id);
 			item.sellPrice = lowestSellOffer - 0.1;
 			item.buyPrice = highestBuyOrder + 0.1;
-			item.profitPerItem = (item.sellPrice - item.buyPrice) - item.sellPrice*(taxRate/100); //- taxes
+			item.profitPerItem = (item.sellPrice - item.buyPrice) - item.sellPrice * (taxRate / 100); //- taxes
 
 			// Calculate the sales backlog - how many days' worth of sell orders are
 			// already on the marketplace - higher backlogs = higher chance you'll be
@@ -232,9 +238,9 @@ function updateDisplay() {
 		calcData.sort((a, b) => (a.sellPrice > b.sellPrice) ? 1 : -1);
 	} else if (sortBySalesBacklog) {
 		calcData.sort((a, b) => (a.salesBacklog > b.salesBacklog) ? 1 : -1);
-	} else if (sortByQuantity) {
-		calcData.sort((a, b) => (a.profitPerItem > b.profitPerItem) ? -1 : 1);
 	} else if (sortByProfitPerItem) {
+		calcData.sort((a, b) => (a.profitPerItem > b.profitPerItem) ? -1 : 1);
+	} else if (sortByQuantity) {
 		calcData.sort((a, b) => (a.maxQuantity > b.maxQuantity) ? -1 : 1);
 	} else if (sortByNumOffers) {
 		calcData.sort((a, b) => (a.numOffersRequired > b.numOffersRequired) ? -1 : 1);
@@ -261,7 +267,7 @@ function updateDisplay() {
 
 	if (transactionLog || expertMode) {
 		headerFields += "<th>Actions</th>";
-	}	var header = $('<tr>').html(headerFields);
+	} var header = $('<tr>').html(headerFields);
 	table.append(header);
 
 	// Create table rows
@@ -284,9 +290,9 @@ function updateDisplay() {
 		if (item.salesBacklog < 4) { color = "color-black"; }
 		if (item.salesBacklog < 1) { color = "color-green"; }
 
-		rowFields += "<td class='text-end " + color + "' onclick='copyTextToClipboard(\"" + item.salesBacklog.toFixed(1) + "\")'>" + numberWithCommas(item.salesBacklog.toFixed(1));
+		rowFields += "<td class='text-end " + color + "' onclick='copyTextToClipboard(\"" + item.salesBacklog.toFixed(1) + "\")'>" + formatNumber(item.salesBacklog.toFixed(1));
 		if (expertMode) {
-			rowFields += "</br><span class='small " + color + "'>" + (item.salesPerDay).toFixed(0) + " a day</span>"
+			rowFields += "</br><span class='small " + color + "'>" + formatNumber((item.salesPerDay).toFixed(0)) + " a day</span>"
 		}
 		rowFields += "</td>"
 
@@ -313,7 +319,7 @@ function updateDisplay() {
 
 
 		/* Sell At */
-		rowFields += "<td class='text-end' onclick='copyTextToClipboard(\"" + item.sellPrice.toFixed(1) + "\")'>" + numberWithCommas(item.sellPrice.toFixed(1));
+		rowFields += "<td class='text-end' onclick='copyTextToClipboard(\"" + item.sellPrice.toFixed(1) + "\")'>" + formatNumber(item.sellPrice.toFixed(1));
 		if (expertMode) {
 			if (item.sellOrders > 500) { color = "color-green"; }
 			if (item.sellOrders < 500) { color = "color-black"; }
@@ -324,16 +330,16 @@ function updateDisplay() {
 		rowFields += "</td>";
 
 		/* Per Item */
-		rowFields += "<td class='text-end' onclick='copyTextToClipboard(\"" + item.profitPerItem.toFixed(1) + "\")'>" + numberWithCommas(item.profitPerItem.toFixed(1));
+		rowFields += "<td class='text-end' onclick='copyTextToClipboard(\"" + item.profitPerItem.toFixed(1) + "\")'>" + formatNumber(item.profitPerItem.toFixed(1));
 		if (expertMode) {
 		}
 		rowFields += "</td>";
 
 		/* Quantity */
-		rowFields += "<td class='text-end' onclick='copyTextToClipboard(\"" + item.maxQuantity.toFixed(1) + "\")'>" + numberWithCommas(item.maxQuantity);
+		rowFields += "<td class='text-end' onclick='copyTextToClipboard(\"" + item.maxQuantity.toFixed(1) + "\")'>" + formatNumber(item.maxQuantity);
 		if (expertMode) {
 
-			var invs = (item.maxQuantity / 2304).toFixed(1); /* /2304 = Inventare */
+			var invs = (item.maxQuantity / 2304).toFixed(1); /* /2304 = Inventar */
 
 			if (invs > 25) { color = "color-red"; }
 			if (invs < 25) { color = "color-yellow"; }
@@ -346,10 +352,10 @@ function updateDisplay() {
 		//  If maxOffers is >1, an extra column is added to show
 		// the number of offers required to buy/sell that many items
 		if (maxOffers > 1) {
-			rowFields += "<td>" + numberWithCommas(item.numOffersRequired) + "</td>";
+			rowFields += "<td>" + formatNumber(item.numOffersRequired) + "</td>";
 		}
 
-		rowFields += "<td class='text-end'>" + numberWithCommas(item.totalProfit.toFixed(0));
+		rowFields += "<td class='text-end'>" + formatNumber(item.totalProfit.toFixed(0));
 		if (expertMode) {
 
 			var marginPercent = ((item.sellPrice / item.buyPrice) * 100 - 100).toFixed(2);
@@ -368,8 +374,8 @@ function updateDisplay() {
 			rowFields += "<td>";
 			/* TODO: Actions */
 			if (transactionLog) {
-				rowFields += "<img onclick='buyTransaction(\""+item.id+"\")' width='24px' style='padding: 2px' src='img/chestBuy.png'>";
-				rowFields += "<img onclick='sellTransaction(\""+item.id+"\")' width='24px' style='padding: 2px' src='img/chestSell.png'>";
+				rowFields += "<img onclick='buyTransaction(\"" + item.id + "\")' width='24px' style='padding: 2px' src='img/chestBuy.png'>";
+				rowFields += "<img onclick='sellTransaction(\"" + item.id + "\")' width='24px' style='padding: 2px' src='img/chestSell.png'>";
 			}
 			if (expertMode) {
 				rowFields += "<img onclick='hideItem(\"" + item.name + "\")' width='26px' src='img/gray_dye.png'>";
@@ -378,10 +384,10 @@ function updateDisplay() {
 			}
 		}
 		var classes = "highlight";
-		if(favorites.includes(item.name)){
+		if (favorites.includes(item.name)) {
 			classes += " favorite";
 		}
-		var row = $('<tr class="'+classes+'">').html(rowFields);
+		var row = $('<tr class="' + classes + '">').html(rowFields);
 		// Add to table
 		table.append(row);
 	});
@@ -398,183 +404,205 @@ function updateDisplay() {
 	}
 	if (notProfitable.length > 0) {
 		notProfitable.sort((a, b) => (a.profitPerItem > b.profitPerItem) ? -1 : 1);
-		missingItemExplanation += '<p><b>Items excluded from the table because they are not profitable:</b><br/>' + notProfitable.map(function (o) { return (o.name + ' (' + Math.abs(o.profitPerItem).toFixed(1) + ' loss)'); }).join(', ') + '</p>';
+		missingItemExplanation += '<p><b>Items excluded from the table because they are not profitable:</b><br/>' + notProfitable.map(function (o) { return (o.name + ' (' + formatNumber(Math.abs(o.profitPerItem).toFixed(1)) + ' loss)'); }).join(', ') + '</p>';
 	}
 	if (notAffordable.length > 0) {
 		notAffordable.sort((a, b) => (a.buyPrice > b.buyPrice) ? -1 : 1);
-		missingItemExplanation += '<p><b>Items excluded from the table because you cannot afford one:</b><br/>' + notAffordable.map(function (o) { return (o.name + ' (' + o.buyPrice.toFixed(1) + ' per item)'); }).join(', ') + '</p>';
+		missingItemExplanation += '<p><b>Items excluded from the table because you cannot afford one:</b><br/>' + notAffordable.map(function (o) { return (o.name + ' (' + formatNumber(o.buyPrice.toFixed(1)) + ' per item)'); }).join(', ') + '</p>';
 	}
 	if (notSellable.length > 0) {
 		notSellable.sort((a, b) => (a.salesBacklog > b.salesBacklog) ? -1 : 1);
-		missingItemExplanation += '<p><b>Items excluded from the table because the sales backlog is too long:</b><br/>' + notSellable.map(function (o) { return (o.name + ' (' + o.salesBacklog.toFixed(1) + ' days)'); }).join(', ') + '</p>';
+		missingItemExplanation += '<p><b>Items excluded from the table because the sales backlog is too long:</b><br/>' + notSellable.map(function (o) { return (o.name + ' (' + formatNumber(o.salesBacklog.toFixed(1)) + ' days)'); }).join(', ') + '</p>';
 	}
 	$('#missingItemExplanation').html(missingItemExplanation);
 	//#endregion
 
 	/* Transactionen */
-	if(transactionLog && transactions.length > 0){
-	var transactionTable = $('<table style="margin-top:0px;border: none;">').addClass('results');
-	headerFields = "<th>Date</th><th>Item</th><th>Type</th><th>Price</th><th>Count</th><th>Saldo</th><th>Actions</th>";
+	if (transactionLog && transactions.length > 0) {
+		var transactionTable = $('<table style="margin-top:0px;border: none;">').addClass('results');
+		headerFields = "<th>Date</th><th>Item</th><th>Type</th><th>Price</th><th>Count</th><th>Saldo</th><th>Actions</th>";
 
-	var header = $('<tr>').html(headerFields);
-	transactionTable.append(header);
+		var header = $('<tr>').html(headerFields);
+		transactionTable.append(header);
 
-	// Create table rows
-	transactions.forEach(function (item, index) {
+		// Create table rows
+		transactions.forEach(function (item, index) {
 
-		/* Date */
- 		var rowFields = "<td>" + moment(item.date).fromNow();   /* .toLocaleTimeString('en-us', {hour12:false, month:"short", day:"numeric"}); */
-		 rowFields += "</td>";
+			/* Date */
+			var rowFields = "<td>" + moment(item.date).fromNow();   /* .toLocaleTimeString('en-us', {hour12:false, month:"short", day:"numeric"}); */
+			rowFields += "</td>";
 
-		/* Name + Wiki + 24h Graph */
-		rowFields += "<td><a target='_blank' href='https://hypixel-skyblock.fandom.com/wiki/" + item.name.toString().replace(" ", "_") + "'>" + item.name;
-		if (expertMode) {
-			rowFields += "<br><a target='_blank' href='https://bazaartracker.com/product/" + item.name.toString().replace(" ", "_") + "'class='small'>24 hour graph</span>";
-		}
-		rowFields += "</td>";
-		/* Sell/BUY */
-		rowFields += "<td><select class='borderless-input' id='TY"+item.id+"' onchange='chanceType(\""+item.id+"\")'>";
-
-		if (item.type ==="sell"){
-			rowFields += "<option value='sell' selected>sell</option><option value='buy'>buy</option>";
-		} else {
-			rowFields += "<option value='sell'>sell</option><option value='buy' selected>buy</option>";
-		}
-		
-		"</select></td>";
-
-		/* Price */
-		rowFields += "<td><input onchange='chancePrice(\""+item.id+"\")' class='text-end borderless-input' id='PR"+item.id+"' value='"+item.price+"' type='text'>";
-		if (expertMode) {
-			item.price = parseFloat(item.price);
-
-			var buyPrice = parseFloat(getBuyPriceByName(item.name).toFixed(2)); 
-			var buyColor = "color-black";
-
-			if(item.type === "buy"){
-			//if order is fullfilled, colors should be different > you buy at 100 new buy is 200 > profit 
-			if(item.price === buyPrice){ //0.00%
-				buyColor = "color-green"
-			} else if (item.price < buyPrice*1.02 && item.price > buyPrice*-1.02){ //2%
-				buyColor = "color-black"
-			} else if (item.price < buyPrice*1.05 && item.price > buyPrice*-1.05){ //5%
-				buyColor = "color-yellow"
-			} else{ //bigger diffrence
-				buyColor = "color-red"
+			/* Name + Wiki + 24h Graph */
+			rowFields += "<td><a target='_blank' href='https://hypixel-skyblock.fandom.com/wiki/" + item.name.toString().replace(" ", "_") + "'>" + item.name;
+			if (expertMode) {
+				rowFields += "<br><a target='_blank' href='https://bazaartracker.com/product/" + item.name.toString().replace(" ", "_") + "'class='small'>24 hour graph</span>";
 			}
+			rowFields += "</td>";
+			/* Sell/BUY */
+			rowFields += "<td><select class='borderless-input' id='TY" + item.id + "' onchange='chanceType(\"" + item.id + "\")'>";
+
+			if (item.type === "sell") {
+				rowFields += "<option value='sell' selected>sell</option><option value='buy'>buy</option>";
 			} else {
-				buyColor = "color-gray"
+				rowFields += "<option value='sell'>sell</option><option value='buy' selected>buy</option>";
 			}
-			
-			var sellPrice = parseFloat(getSellPriceByName(item.name).toFixed(2)); 
-			var sellColor = "color-black";
 
-			if(item.type === "sell"){
-			//if order is fullfilled, colors should be different > you buy at 100 new buy is 200 > profit 
-			if(item.price === sellPrice){ //0.00%
-				sellColor = "color-green"
-			} else if (item.price*-1.02 < sellPrice && item.price*1.02 > sellPrice){ //2%
-				sellColor = "color-black"
-			} else if (item.price*-1.05 < sellPrice&& item.price*1.05 > sellPrice){ //5%
-				sellColor = "color-yellow"
-			} else{ //bigger diffrence
-				sellColor = "color-red"
+			"</select></td>";
+
+			/* Price */
+			rowFields += "<td class='text-end'><input onchange='chancePrice(\"" + item.id + "\")' class='text-end borderless-input' id='PR" + item.id + "' value='" + item.price + "' type='text'>";
+			if (expertMode) {
+				item.price = parseFloat(item.price);
+
+				if (item.type === "buy") {
+					var buyPrice = parseFloat(getBuyPriceByName(item.name).toFixed(2));
+					var buyColor = "color-black";
+
+					if (item.price >= buyPrice) { //0.00%
+						buyColor = "color-green"
+					} else if (item.price < buyPrice -0.6) {
+						buyColor = "color-red"
+					} else if (item.price < buyPrice -0.4) {
+						buyColor = "color-yellow"
+					} else if (item.price < buyPrice -0.2) {
+						buyColor = "color-black"
+					}
+					rowFields += "<br><img width='12px' style='padding: 2px' src='img/chestBuy.png'><span class='small nowrap " + buyColor + "'>" + buyPrice + "</span>"
+				}
+
+				if (item.type === "sell") {
+				var sellPrice = parseFloat(getSellPriceByName(item.name).toFixed(2));
+				var sellColor = "color-black";
+
+					if (item.price <= sellPrice) { //0.00%
+						sellColor = "color-green"
+					} else if (item.price > sellPrice +0.6) { //bigger diffrence
+						sellColor = "color-red"
+					} else if (item.price > sellPrice +0.4) {
+						sellColor = "color-yellow"
+					} else if (item.price > sellPrice +0.2) {
+						sellColor = "color-black"
+					}
+
+					rowFields += "</br><img width='12px' style='padding: 2px' src='img/chestSell.png'><span class='small nowrap " + sellColor + "'>" + sellPrice + "</span>"
+				}
+
+
 			}
+
+
+			rowFields += "</td>";
+
+
+			/* Count */
+			rowFields += "<td class='text-end'><input onchange='chanceCount(\"" + item.id + "\")' class='text-end borderless-input' id='CO" + item.id + "' value='" + formatNumber(item.count) + "' type='text'>";
+
+			if (expertMode && item.type === "buy") {
+				rowFields += "<br><span class='small nowrap'>Stock: " + getStockCount(item.name) + "</span>"
+			}
+
+			rowFields += "</td>";
+
+			var prefix = 1;
+			if (item.type === "buy") {
+				prefix = -1;
+				color = "color-red";
 			} else {
-				sellColor = "color-gray"
+				color = "color-green"
 			}
 
-			rowFields += "<br><img width='12px' style='padding: 2px' src='img/chestBuy.png'><span class='small nowrap " + buyColor + "'>" + buyPrice +"</span>"
-			rowFields += "<img width='12px' style='padding: 2px' src='img/chestSell.png'><span class='small nowrap " + sellColor + "'>" + sellPrice +"</span>"
-		}
+			item.saldo = prefix * item.price * item.count;
+			rowFields += "<td class='text-end " + color + "'>" + formatNumber((item.saldo).toFixed(0)) + "</td>";
 
 
-		rowFields += "</td>";
+			/* Actions */
+			rowFields += "<td>";
+			if (item.type === "buy") {
+				rowFields += "<img onclick='flipBuyTransaction(\"" + item.id + "\")' width='24px' style='padding: 2px' src='img/chestSell.png'>";
+			} else {
+				rowFields += "<img onclick='flipSellTransaction(\"" + item.id + "\")' width='24px' style='padding: 2px' src='img/chestBuy.png'>";
+			}
+
+			/* Delete */
+			rowFields += "<img onclick='deleteTransaction(\"" + item.id + "\")' width='24px' style='padding: 2px' src='img/lava_bucket.png'>";
+			/* Copy */
+			rowFields += "<img onclick='copyTransaction(\"" + item.id + "\")' width='24px' style='padding: 2px' src='img/copy_dye.png'>";
+
+			rowFields += "</td>";
 
 
-		/* Count */
-		rowFields += "<td><input onchange='chanceCount(\""+item.id+"\")' class='text-end borderless-input' id='CO"+item.id+"' value='"+item.count+"' type='text'></td>";
+			var row = $('<tr class="highlight">').html(rowFields);
 
-		var prefix = 1;
-		if(item.type === "buy"){
-			prefix = -1;
+			// Add to table
+			transactionTable.append(row);
+		});
+
+		//saldo
+		var saldo = transactions.reduce((r, c) => r + c.saldo, 0).toFixed(0)
+		var taxes = 0;
+		transactions.forEach(tr => {
+			if (tr.saldo > 0) {//Taxes only on SELL
+				taxes += tr.saldo * (taxRate / 100);
+			}
+		});
+		taxes = taxes.toFixed(0);
+
+		if (saldo < 0) {
 			color = "color-red";
 		} else {
 			color = "color-green"
 		}
 
-		item.saldo = prefix*item.price*item.count;
-		rowFields += "<td class='text-end " + color + "'>" + numberWithCommas((item.saldo).toFixed(0)) + "</td>";
-		
-
-		/* Actions */
-		rowFields += "<td>";
-		if(item.type === "buy"){
-		rowFields += "<img onclick='flipBuyTransaction(\""+item.id+"\")' width='24px' style='padding: 2px' src='img/chestSell.png'>";
-		} else {
-		rowFields += "<img onclick='flipSellTransaction(\""+item.id+"\")' width='24px' style='padding: 2px' src='img/chestBuy.png'>";
-		}
-
-		/* Delete */
-		rowFields += "<img onclick='deleteTransaction(\""+item.id+"\")' width='24px' style='padding: 2px' src='img/lava_bucket.png'>";
-		/* Copy */
-		rowFields += "<img onclick='copyTransaction(\""+item.id+"\")' width='24px' style='padding: 2px' src='img/copy_dye.png'>";
-
-		rowFields += "</td>";
-
-
-		var row = $('<tr class="highlight">').html(rowFields);
-
-		// Add to table
-		transactionTable.append(row);
-	});
-
-	//saldo
-	var saldo = transactions.reduce((r, c) => r + c.saldo, 0).toFixed(0)
-	var taxes = 0;
-	transactions.forEach(tr => {
-		if(tr.saldo > 0){//Taxes only on SELL
-			taxes += tr.saldo*(taxRate/100);
-		}
-	});
-	taxes = taxes.toFixed(0);
-
-	if(saldo < 0){
-		color = "color-red";
+		var sum = "<tr class='borderless'><td class='color-red' onclick='deleteAllTransactions(\"a\");'>DELETE</br></br></td><td></td><td></td><td></td><td>growth:</br>taxes:</br>profit:</br></td>";
+		sum += "<td class='text-end'><span class='" + color + "'>" + formatNumber(saldo) + "</span></br><span class='color-red'>-" + formatNumber(taxes) + "</span></br><span class='" + color + "'>" + formatNumber(saldo - taxes) + "</span></br></td></tr>";
+		transactionTable.append(sum);
+		// Update DOM
+		$('#transactionsTable').html(transactionTable);
 	} else {
-		color = "color-green"
-	}
-
-	var sum = "<tr class='borderless'><td class='color-red' onclick='deleteAllTransactions(\"a\");'>DELETE</br></br></td><td></td><td></td><td></td><td>growth:</br>taxes:</br>profit:</br></td>";
-	sum += "<td class='text-end'><span class='"+color+"'>"+numberWithCommas(saldo)+"</span></br><span class='color-red'>-"+numberWithCommas(taxes)+"</span></br><span class='"+color+"'>"+numberWithCommas(saldo-taxes)+"</span></br></td></tr>";
-	transactionTable.append(sum);
-	// Update DOM
-	$('#transactionsTable').html(transactionTable);
-	} else {
-		$('#transactionsTable').html("");	
+		$('#transactionsTable').html("");
 	}
 
 	//save on every input change
 	save();
 }
 
-function getBuyPriceByName(itemName){
+function getBuyPriceByName(itemName) {
 	var result = allData.filter(obj => {
 		return obj.name === itemName;
 	})
 
-	return result[0].buyPrice;
+	return result[0].buyPrice - 0.1; //for offset at dataTable
 }
 
-function getSellPriceByName(itemName){
+function getSellPriceByName(itemName) {
 	var result = allData.filter(obj => {
 		return obj.name === itemName;
 	})
 
-	return result[0].sellPrice;
+	return result[0].sellPrice + 0.1; //for offset at dataTable
 }
 
-function buyTransaction(item){
+function getStockCount(itemName) {
+	var result = transactions.filter(obj => {
+		return obj.name === itemName;
+	})
+
+	var stock = 0;
+
+	result.forEach(trans => {
+		if (trans.type === "buy") {
+			stock += shortCutsToNumber(trans.count);
+		} else {
+			stock -= shortCutsToNumber(trans.count);
+		}
+	});
+
+	return stock;
+}
+
+
+
+function buyTransaction(item) {
 	var result = calcData.filter(obj => {
 		return obj.id === item;
 	})
@@ -590,7 +618,7 @@ function buyTransaction(item){
 	updateDisplay();
 }
 
-function sellTransaction(item){
+function sellTransaction(item) {
 	var result = calcData.filter(obj => {
 		return obj.id === item;
 	})
@@ -607,12 +635,12 @@ function sellTransaction(item){
 }
 
 
-function deleteAllTransactions(){
+function deleteAllTransactions() {
 	transactions = [];
 	updateDisplay();
 }
 
-function copyTransaction(item){
+function copyTransaction(item) {
 	var result = transactions.filter(obj => {
 		return obj.id === item;
 	})
@@ -625,7 +653,7 @@ function copyTransaction(item){
 	updateDisplay();
 }
 
-function flipBuyTransaction(item){
+function flipBuyTransaction(item) {
 	var result = transactions.filter(obj => {
 		return obj.id === item;
 	})
@@ -639,7 +667,7 @@ function flipBuyTransaction(item){
 	updateDisplay();
 }
 
-function flipSellTransaction(item){
+function flipSellTransaction(item) {
 	var result = transactions.filter(obj => {
 		return obj.id === item;
 	})
@@ -654,8 +682,8 @@ function flipSellTransaction(item){
 }
 
 
-function chanceType(item){
-	var type = document.getElementById("TY"+item).value;
+function chanceType(item) {
+	var type = document.getElementById("TY" + item).value;
 
 	var result = transactions.filter(obj => {
 		return obj.id === item;
@@ -665,8 +693,10 @@ function chanceType(item){
 	updateDisplay();
 }
 
-function chancePrice(item){
-	var price = document.getElementById("PR"+item).value;
+function chancePrice(item) {
+	var price = document.getElementById("PR" + item).value;
+
+	price = shortCutsToNumber(price);
 
 	var result = transactions.filter(obj => {
 		return obj.id === item;
@@ -676,8 +706,10 @@ function chancePrice(item){
 	updateDisplay();
 }
 
-function chanceCount(item){
-	var price = document.getElementById("CO"+item).value;
+function chanceCount(item) {
+	var price = document.getElementById("CO" + item).value;
+
+	price = shortCutsToNumber(price);
 
 	var result = transactions.filter(obj => {
 		return obj.id === item;
@@ -687,7 +719,7 @@ function chanceCount(item){
 	updateDisplay();
 }
 
-function deleteTransaction(item){
+function deleteTransaction(item) {
 	var result = transactions.filter(obj => {
 		return obj.id !== item;
 	})
@@ -701,7 +733,7 @@ function deleteTransaction(item){
 // Bind UI inputs to set internal values and update UI
 $('#maxOutlay').val(maxOutlay);
 $('#maxOutlay').keyup(function () {
-	maxOutlay = $(this).val();
+	maxOutlay = shortCutsToNumber($(this).val());
 	updateDisplay();
 });
 $('#maxOffers').val(maxOffers);
@@ -725,6 +757,7 @@ $('input.settings').on('change', function () {
 	expertMode = $('input#expertMode').is(":checked");
 	transactionLog = $('input#transactionLog').is(":checked");
 	npcDeals = $('input#npcDeals').is(":checked");
+	shortNumbers = $('input#shortNumbers').is(":checked");
 	updateDisplay();
 });
 
@@ -742,7 +775,7 @@ $('button#refreshButton').click(function () {
 load();
 
 function favorite(itemName) {
-	if(favorites.includes(itemName)){
+	if (favorites.includes(itemName)) {
 		favorites = favorites.filter(function (item) {
 			return item !== itemName;
 		})
@@ -771,6 +804,7 @@ function save() {
 	localStorage.setItem("expertMode", expertMode);
 	localStorage.setItem("transactionLog", transactionLog);
 	localStorage.setItem("npcDeals", npcDeals);
+	localStorage.setItem("shortNumbers", shortNumbers);
 	localStorage.setItem("maxOutlay", maxOutlay);
 	localStorage.setItem("maxOffers", maxOffers);
 	localStorage.setItem("maxBacklog", maxBacklog);
@@ -778,62 +812,124 @@ function save() {
 }
 
 function load() {
-	hiddenItemsLoad = JSON.parse(localStorage.getItem("hiddenItems"));
-	if (hiddenItemsLoad !== null) {
-		hiddenItems = hiddenItemsLoad;
+	try {
+		hiddenItemsLoad = JSON.parse(localStorage.getItem("hiddenItems"));
+		if (hiddenItemsLoad !== null) {
+			hiddenItems = hiddenItemsLoad;
+		}
+	}
+	catch (e) {
+		console.log(e);
 	}
 
-	favoritesLoad = JSON.parse(localStorage.getItem("favorites"));
-	if (favoritesLoad !== null) {
-		favorites = favoritesLoad;
+	try {
+		favoritesLoad = JSON.parse(localStorage.getItem("favorites"));
+		if (favoritesLoad !== null) {
+			favorites = favoritesLoad;
+		}
+	}
+	catch (e) {
+		console.log(e);
 	}
 
-	transactionsLoad = JSON.parse(localStorage.getItem("transactions"));
-	if (transactionsLoad !== null) {
-		transactions = transactionsLoad;
+	try {
+		transactionsLoad = JSON.parse(localStorage.getItem("transactions"));
+		if (transactionsLoad !== null) {
+			transactions = transactionsLoad;
+		}
 	}
-	
-	expertModeLoad = JSON.parse(localStorage.getItem("expertMode"));
-	if (expertModeLoad !== null) {
-		expertMode = expertModeLoad;
-		document.getElementById("expertMode").checked = expertMode;
-	}
-	transactionLogLoad = JSON.parse(localStorage.getItem("transactionLog"));
-	if (transactionLogLoad !== null) {
-		transactionLog = transactionLogLoad;
-		document.getElementById("transactionLog").checked = transactionLog;
+	catch (e) {
+		console.log(e);
 	}
 
-	npcDealsLoad = JSON.parse(localStorage.getItem("npcDeals"));
-	if (npcDealsLoad !== null) {
-		npcDeals = npcDealsLoad;
-		document.getElementById("npcDeals").checked = npcDeals;
+	try {
+		expertModeLoad = JSON.parse(localStorage.getItem("expertMode"));
+		if (expertModeLoad !== null) {
+			expertMode = expertModeLoad;
+			document.getElementById("expertMode").checked = expertMode;
+		}
+	}
+	catch (e) {
+		console.log(e);
 	}
 
-	maxOutlayLoad = JSON.parse(localStorage.getItem("maxOutlay"));
-	if (maxOutlayLoad > 0) { 
-		maxOutlay = maxOutlayLoad;
-		document.getElementById("maxOutlay").value = maxOutlay; 
-	};
+	try {
+		transactionLogLoad = JSON.parse(localStorage.getItem("transactionLog"));
+		if (transactionLogLoad !== null) {
+			transactionLog = transactionLogLoad;
+			document.getElementById("transactionLog").checked = transactionLog;
+		}
+	}
+	catch (e) {
+		console.log(e);
+	}
 
-	maxOffersLoad = JSON.parse(localStorage.getItem("maxOffers"));
-	if (maxOffersLoad > 0) { 
-		maxOffers = maxOffersLoad;
-		document.getElementById("maxOffers").value = maxOffers; 
-	};
+	try {
+		npcDealsLoad = JSON.parse(localStorage.getItem("npcDeals"));
+		if (npcDealsLoad !== null) {
+			npcDeals = npcDealsLoad;
+			document.getElementById("npcDeals").checked = npcDeals;
+		}
+	}
+	catch (e) {
+		console.log(e);
+	}
 
-	maxBacklogLoad = JSON.parse(localStorage.getItem("maxBacklog"));
-	if (maxBacklogLoad > 0) { 
-		maxBacklog = maxBacklogLoad;
-		document.getElementById("maxBacklog").value = maxBacklog; 
-	};
+	try {
+		shortNumbersLoad = JSON.parse(localStorage.getItem("shortNumbers"));
+		if (shortNumbersLoad !== null) {
+			shortNumbers = shortNumbersLoad;
+			document.getElementById("shortNumbers").checked = shortNumbers;
+		}
+	}
+	catch (e) {
+		console.log(e);
+	}
 
-	taxRateLoad = JSON.parse(localStorage.getItem("taxRate"));
-	if (taxRateLoad > 0) { 
-		taxRate = taxRateLoad;
-		document.getElementById("taxRate").value = taxRate; 
-	};
-	
+
+	try {
+		maxOutlayLoad = shortCutsToNumber(JSON.parse(localStorage.getItem("maxOutlay")));
+		if (maxOutlayLoad > 0) {
+			maxOutlay = maxOutlayLoad;
+			document.getElementById("maxOutlay").value = maxOutlay;
+		};
+	}
+	catch (e) {
+		console.log(e);
+	}
+
+	try {
+		maxOffersLoad = shortCutsToNumber(JSON.parse(localStorage.getItem("maxOffers")));
+		if (maxOffersLoad > 0) {
+			maxOffers = maxOffersLoad;
+			document.getElementById("maxOffers").value = maxOffers;
+		};
+	}
+	catch (e) {
+		console.log(e);
+	}
+
+	try {
+		maxBacklogLoad = shortCutsToNumber(JSON.parse(localStorage.getItem("maxBacklog")));
+		if (maxBacklogLoad > 0) {
+			maxBacklog = maxBacklogLoad;
+			document.getElementById("maxBacklog").value = maxBacklog;
+		};
+	}
+	catch (e) {
+		console.log(e);
+	}
+
+	try {
+		taxRateLoad = shortCutsToNumber(JSON.parse(localStorage.getItem("taxRate")));
+		if (taxRateLoad > 0) {
+			taxRate = taxRateLoad;
+			document.getElementById("taxRate").value = taxRate;
+		};
+	}
+	catch (e) {
+		console.log(e);
+	}
 	// Get the data from the Skyblock API
 	getProductList();
 }
@@ -847,17 +943,22 @@ const average = (arr, name) => {
 	}, 0);
 };
 
-/* function average(prices){
+function formatNumber(number) {
+	var suffix = "";
+	if (shortNumbers) {
+		if (Math.abs(parseFloat(number)) >= 1000000) {
+			number = (number / 1000000).toFixed(2);
+			suffix = "m";
+		} else if (Math.abs(parseFloat(number)) >= 1000) {
+			number = (number / 1000).toFixed(0);
+			suffix = "k";
+		}
+	}
 
-	let filteredData = prices.filter(({ gender }) => 'female' == 'female'),
-	average = filteredData.reduce((r, c) => r + c.avg, 0) / filteredData.length;
+	number = numberWithCommas(number) + suffix;
 
-
-
-	//let filteredData = prices.filter(true);
-	//const average = filteredData.reduce((r, c) => r + c.avg, 0) / filteredData.length;// prices.reduce((total, next) => total + next.avg, 0) / prices.length;
-	return average;
-} */
+	return number;
+}
 
 function numberWithCommas(x) {
 	return x.toString().replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, " ");
@@ -875,7 +976,29 @@ function copyTextToClipboard(text) {
 }
 
 function uuidv4() {
-	return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
-	  (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+	return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c =>
+		(c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
 	);
-  }
+}
+
+function shortCutsToNumber(text) {
+	text = text.toString();
+	var value = parseFloat(text);
+
+	for (var i = 0; i < text.length; i++) {
+		var char = text.charAt(i);
+		
+
+		if(char === "k"|| char === "K"){
+			//text = text.replace("k", "");
+			value = (value*1000).toString();
+		}				
+	}
+	
+/* 	text = text.replaceAll("k", "000");
+	text = text.replaceAll("K", "000");
+	text = text.replaceAll("m", "000000");
+	text = text.replaceAll("M", "000000"); */
+
+	return parseFloat(value);
+}
