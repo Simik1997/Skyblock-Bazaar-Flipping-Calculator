@@ -17,14 +17,18 @@
 	Transactions + Speichern x
 		Date, Stück, Kaufpreis, Preis aktuell (rot bei großer abweichung), Verkaufspreis, Verkaufspreis aktuell, Actions: Verkauft, Mehr gekauft
 		 buy & sell aus Bazaar, aktuelle Item Preise anzeigen
+	Orders fullfilled x
 
 	Taschenrechner
 	NPC Deals ergänzen
 	Suchleiste 
-	TAXs
-	Table Formation
 	clear button
-	Orders fullfilled
+
+
+		nummern besser kürzen
+		preis übernhemen button +1 -1
+		buy & sell kennzeichnen
+		ertrag nach item
 
 Ideen
 Darkmode
@@ -111,7 +115,8 @@ Week Durchschnitt
 			</td>
 			<td>
 				<div class="help">
-					<p>Taxrate you see on the Bazzar. Needed to calculate the Profit in transaction log. (Only on sales)</p>
+					<p>Taxrate you see on the Bazzar. Needed to calculate the Profit in transaction log. (Only on sales)
+					</p>
 				</div>
 			</td>
 		</tr>
@@ -131,7 +136,9 @@ Week Durchschnitt
 		<!-- shortNumbers -->
 		<input type="checkbox" id="shortNumbers" class="settings" name="shortNumbers" value="shortNumbers">
 		<label for="shortNumbers">short numbers</label>
-		
+		<!-- hideClosedTransactions -->
+		<input type="checkbox" id="hideClosedTransactions" class="settings" name="hideClosedTransactions" value="hideClosedTransactions">
+		<label for="hideClosedTransactions">hide closed transactions</label>
 	</div>
 
 	<div class="help">
@@ -164,6 +171,8 @@ Week Durchschnitt
 			<li><b>Item Name:</b> Click to open the wiki.</li>
 			<li><b>Numbers:</b> Click to copy to clipboard.</li>
 			<li><b>Expertmode:</b> Show average prices.</li>
+			<li><b>Short numbers:</b> Shortens numbers using k & m. 1k means 1000. You can althoug type it in using k & m.</li>
+			<li><b>Quick Math:</b> Type in Math is ok as well. For Example 1k - 10 = 990</li>
 		</ul>
 	</div>
 

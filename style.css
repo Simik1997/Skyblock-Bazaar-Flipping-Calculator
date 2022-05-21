@@ -195,3 +195,12 @@ div#footer {
 .text-end{
   text-align: end;
 }
+
+
+.disabled td {
+  padding: 0px;
+}
+
+.disabled {
+  color: gray;
+}

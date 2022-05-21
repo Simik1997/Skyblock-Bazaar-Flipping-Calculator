@@ -29,6 +29,7 @@ var expertMode = false;
 var transactionLog = false;
 var npcDeals = false;
 var shortNumbers = false;
+var hideClosedTransactions = false;
 
 // Item name lookups for certain items where just transforming the name
 // to sentence case isn't enough
@@ -53,9 +54,9 @@ ITEM_NAMES_LOOKUP.set('LOG_2', 'Acacia Log');
 ITEM_NAMES_LOOKUP.set('LOG:3', 'Jungle Log');
 
 /* AUTO REFRESH! */
-const interval = setInterval(function() {
+const interval = setInterval(function () {
 	getProductList();
-  }, 60000); //60 sec
+}, 60000); //60 sec
 
 // Basic API request function
 function request(endpoint, params, callback) {
@@ -319,7 +320,7 @@ function updateDisplay() {
 
 
 		/* Sell At */
-		rowFields += "<td class='text-end' onclick='copyTextToClipboard(\"" + item.sellPrice.toFixed(1) + "\")'>" + formatNumber(item.sellPrice.toFixed(1));
+		rowFields += "<td class='text-end' onclick='copyTextToClipboard(\"" + item.sellPrice.toFixed(1) + "\")'>" + numberWithCommas(item.sellPrice.toFixed(1));
 		if (expertMode) {
 			if (item.sellOrders > 500) { color = "color-green"; }
 			if (item.sellOrders < 500) { color = "color-black"; }
@@ -427,19 +428,26 @@ function updateDisplay() {
 
 		// Create table rows
 		transactions.forEach(function (item, index) {
+			var disabled = "";
+			if (item.finished) {
+				if(hideClosedTransactions){
+					return;
+				}
+				var disabled = "disabled";
+			}
 
 			/* Date */
 			var rowFields = "<td>" + moment(item.date).fromNow();   /* .toLocaleTimeString('en-us', {hour12:false, month:"short", day:"numeric"}); */
 			rowFields += "</td>";
 
 			/* Name + Wiki + 24h Graph */
-			rowFields += "<td><a target='_blank' href='https://hypixel-skyblock.fandom.com/wiki/" + item.name.toString().replace(" ", "_") + "'>" + item.name;
-			if (expertMode) {
+			rowFields += "<td><a target='_blank' class='" + disabled + "' href='https://hypixel-skyblock.fandom.com/wiki/" + item.name.toString().replace(" ", "_") + "'>" + item.name;
+			if (expertMode && !item.finished) {
 				rowFields += "<br><a target='_blank' href='https://bazaartracker.com/product/" + item.name.toString().replace(" ", "_") + "'class='small'>24 hour graph</span>";
 			}
 			rowFields += "</td>";
 			/* Sell/BUY */
-			rowFields += "<td><select class='borderless-input' id='TY" + item.id + "' onchange='chanceType(\"" + item.id + "\")'>";
+			rowFields += "<td><select " + disabled + " class='borderless-input' id='TY" + item.id + "' onchange='chanceType(\"" + item.id + "\")'>";
 
 			if (item.type === "sell") {
 				rowFields += "<option value='sell' selected>sell</option><option value='buy'>buy</option>";
@@ -450,8 +458,8 @@ function updateDisplay() {
 			"</select></td>";
 
 			/* Price */
-			rowFields += "<td class='text-end'><input onchange='chancePrice(\"" + item.id + "\")' class='text-end borderless-input' id='PR" + item.id + "' value='" + item.price + "' type='text'>";
-			if (expertMode) {
+			rowFields += "<td class='text-end'><input " + disabled + " onchange='chancePrice(\"" + item.id + "\")' class='text-end borderless-input' id='PR" + item.id + "' value='" + item.price + "' type='text'>";
+			if (expertMode && !item.finished) {
 				item.price = parseFloat(item.price);
 
 				if (item.type === "buy") {
@@ -460,27 +468,27 @@ function updateDisplay() {
 
 					if (item.price >= buyPrice) { //0.00%
 						buyColor = "color-green"
-					} else if (item.price < buyPrice -0.6) {
+					} else if (item.price < buyPrice - 0.6) {
 						buyColor = "color-red"
-					} else if (item.price < buyPrice -0.4) {
+					} else if (item.price < buyPrice - 0.4) {
 						buyColor = "color-yellow"
-					} else if (item.price < buyPrice -0.2) {
+					} else if (item.price < buyPrice - 0.2) {
 						buyColor = "color-black"
 					}
 					rowFields += "<br><img width='12px' style='padding: 2px' src='img/chestBuy.png'><span class='small nowrap " + buyColor + "'>" + buyPrice + "</span>"
 				}
 
 				if (item.type === "sell") {
-				var sellPrice = parseFloat(getSellPriceByName(item.name).toFixed(2));
-				var sellColor = "color-black";
+					var sellPrice = parseFloat(getSellPriceByName(item.name).toFixed(2));
+					var sellColor = "color-black";
 
 					if (item.price <= sellPrice) { //0.00%
 						sellColor = "color-green"
-					} else if (item.price > sellPrice +0.6) { //bigger diffrence
+					} else if (item.price > sellPrice + 0.6) { //bigger diffrence
 						sellColor = "color-red"
-					} else if (item.price > sellPrice +0.4) {
+					} else if (item.price > sellPrice + 0.4) {
 						sellColor = "color-yellow"
-					} else if (item.price > sellPrice +0.2) {
+					} else if (item.price > sellPrice + 0.2) {
 						sellColor = "color-black"
 					}
 
@@ -495,9 +503,9 @@ function updateDisplay() {
 
 
 			/* Count */
-			rowFields += "<td class='text-end'><input onchange='chanceCount(\"" + item.id + "\")' class='text-end borderless-input' id='CO" + item.id + "' value='" + formatNumber(item.count) + "' type='text'>";
+			rowFields += "<td class='text-end'><input " + disabled + " onchange='chanceCount(\"" + item.id + "\")' class='text-end borderless-input' id='CO" + item.id + "' value='" + formatNumberAbsolut(item.count) + "' type='text'>";
 
-			if (expertMode && item.type === "buy") {
+			if (expertMode && item.type === "buy" && !item.finished) {
 				rowFields += "<br><span class='small nowrap'>Stock: " + getStockCount(item.name) + "</span>"
 			}
 
@@ -517,21 +525,25 @@ function updateDisplay() {
 
 			/* Actions */
 			rowFields += "<td>";
-			if (item.type === "buy") {
-				rowFields += "<img onclick='flipBuyTransaction(\"" + item.id + "\")' width='24px' style='padding: 2px' src='img/chestSell.png'>";
-			} else {
-				rowFields += "<img onclick='flipSellTransaction(\"" + item.id + "\")' width='24px' style='padding: 2px' src='img/chestBuy.png'>";
-			}
+			if (!item.finished) {
+				if (item.type === "buy") {
+					rowFields += "<img onclick='flipBuyTransaction(\"" + item.id + "\")' width='24px' style='padding: 2px' src='img/chestSell.png'>";
+				} else {
+					rowFields += "<img onclick='flipSellTransaction(\"" + item.id + "\")' width='24px' style='padding: 2px' src='img/chestBuy.png'>";
+				}
 
-			/* Delete */
-			rowFields += "<img onclick='deleteTransaction(\"" + item.id + "\")' width='24px' style='padding: 2px' src='img/lava_bucket.png'>";
+				/* Delete */
+				rowFields += "<img onclick='deleteTransaction(\"" + item.id + "\")' width='24px' style='padding: 2px' src='img/lava_bucket.png'>";
+				/* Copy */
+				rowFields += "<img onclick='copyTransaction(\"" + item.id + "\")' width='24px' style='padding: 2px' src='img/copy_dye.png'>";
+			}
 			/* Copy */
-			rowFields += "<img onclick='copyTransaction(\"" + item.id + "\")' width='24px' style='padding: 2px' src='img/copy_dye.png'>";
+			rowFields += "<img onclick='finishTransaction(\"" + item.id + "\")' width='24px' style='padding: 2px' src='img/check.png'>";
 
 			rowFields += "</td>";
 
 
-			var row = $('<tr class="highlight">').html(rowFields);
+			var row = $('<tr class="highlight ' + disabled + '">').html(rowFields);
 
 			// Add to table
 			transactionTable.append(row);
@@ -728,6 +740,15 @@ function deleteTransaction(item) {
 	updateDisplay();
 }
 
+
+function finishTransaction(item) {
+	var result = transactions.filter(obj => {
+		return obj.id === item;
+	})
+
+	result[0].finished = !result[0].finished;
+	updateDisplay();
+}
 // Run on startup:
 
 // Bind UI inputs to set internal values and update UI
@@ -758,6 +779,7 @@ $('input.settings').on('change', function () {
 	transactionLog = $('input#transactionLog').is(":checked");
 	npcDeals = $('input#npcDeals').is(":checked");
 	shortNumbers = $('input#shortNumbers').is(":checked");
+	hideClosedTransactions = $('input#hideClosedTransactions').is(":checked");
 	updateDisplay();
 });
 
@@ -805,6 +827,7 @@ function save() {
 	localStorage.setItem("transactionLog", transactionLog);
 	localStorage.setItem("npcDeals", npcDeals);
 	localStorage.setItem("shortNumbers", shortNumbers);
+	localStorage.setItem("hideClosedTransactions", hideClosedTransactions);
 	localStorage.setItem("maxOutlay", maxOutlay);
 	localStorage.setItem("maxOffers", maxOffers);
 	localStorage.setItem("maxBacklog", maxBacklog);
@@ -886,6 +909,17 @@ function load() {
 		console.log(e);
 	}
 
+	try {
+		hideClosedTransactionsLoad = JSON.parse(localStorage.getItem("hideClosedTransactions"));
+		if (hideClosedTransactionsLoad !== null) {
+			hideClosedTransactions = hideClosedTransactionsLoad;
+			document.getElementById("hideClosedTransactions").checked = hideClosedTransactions;
+		}
+	}
+	catch (e) {
+		console.log(e);
+	}
+
 
 	try {
 		maxOutlayLoad = shortCutsToNumber(JSON.parse(localStorage.getItem("maxOutlay")));
@@ -960,6 +994,23 @@ function formatNumber(number) {
 	return number;
 }
 
+function formatNumberAbsolut(number) {
+	var suffix = "";
+	if (shortNumbers) {
+		if (number % 1000000 === 0) {
+			number = (number / 1000000).toFixed(2);
+			suffix = "m";
+		} else if (number % 1000 === 0) {
+			number = (number / 1000).toFixed(0);
+			suffix = "k";
+		}
+	}
+
+	number = numberWithCommas(number) + suffix;
+
+	return number;
+}
+
 function numberWithCommas(x) {
 	return x.toString().replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, " ");
 }
@@ -982,23 +1033,57 @@ function uuidv4() {
 }
 
 function shortCutsToNumber(text) {
-	text = text.toString();
-	var value = parseFloat(text);
 
+	//replace k with numbers for math functions
+
+	var value; //parseFloat(text);
+	
 	for (var i = 0; i < text.length; i++) {
 		var char = text.charAt(i);
-		
 
-		if(char === "k"|| char === "K"){
-			//text = text.replace("k", "");
-			value = (value*1000).toString();
-		}				
+		if (char === "k" || char === "K") {
+			//get value in front of multiplyer to multiply
+			value = getLeadingNumberFromString(text, i);
+			cuttingLength = (value).toString().length;
+
+			value = (value * 1000).toString();
+			//replace in String
+			var text = [text.slice(0, i-cuttingLength), value, text.slice(i+1)].join('');
+
+			
+		}
+
+		if (char === "m" || char === "M") {
+			//get value in front of multiplyer to multiply
+			value = getLeadingNumberFromString(text, i);
+			cuttingLength = (value).toString().length;
+
+			value = (value * 1000000).toString();
+			//replace in String
+			var text = [text.slice(0, i-cuttingLength), value, text.slice(i+1)].join('');
+			
+		}
 	}
-	
-/* 	text = text.replaceAll("k", "000");
-	text = text.replaceAll("K", "000");
-	text = text.replaceAll("m", "000000");
-	text = text.replaceAll("M", "000000"); */
+	console.log(text)
+	text = eval(text)
 
-	return parseFloat(value);
+	return parseFloat(text);
+}
+
+function getLeadingNumberFromString(text, charPosition){
+
+	var value = "";
+
+	for (var i = charPosition-1; i >= 0; i--) {
+		var char = text.charAt(i)
+		console.log(char);
+
+		if(parseInt(char) !== NaN && char !== "-" && char !== "+"){
+			value = parseInt(char) + value;
+		} else {
+			return value;
+		}
+	}
+
+	return value;
 }
