@@ -56,7 +56,7 @@ ITEM_NAMES_LOOKUP.set('LOG:3', 'Jungle Log');
 /* AUTO REFRESH! */
 const interval = setInterval(function () {
 	getProductList();
-}, 60000); //60 sec
+}, 30000); //30 sec
 
 // Basic API request function
 function request(endpoint, params, callback) {
@@ -430,7 +430,7 @@ function updateDisplay() {
 		transactions.forEach(function (item, index) {
 			var disabled = "";
 			if (item.finished) {
-				if(hideClosedTransactions){
+				if (hideClosedTransactions) {
 					return;
 				}
 				var disabled = "disabled";
@@ -463,19 +463,19 @@ function updateDisplay() {
 				item.price = parseFloat(item.price);
 
 				if (item.type === "buy") {
+
+
+
 					var buyPrice = parseFloat(getBuyPriceByName(item.name).toFixed(2));
 					var buyColor = "color-black";
 
 					if (item.price >= buyPrice) { //0.00%
 						buyColor = "color-green"
-					} else if (item.price < buyPrice - 0.6) {
+					} else {
 						buyColor = "color-red"
-					} else if (item.price < buyPrice - 0.4) {
-						buyColor = "color-yellow"
-					} else if (item.price < buyPrice - 0.2) {
-						buyColor = "color-black"
 					}
 					rowFields += "<br><img width='12px' style='padding: 2px' src='img/chestBuy.png'><span class='small nowrap " + buyColor + "'>" + buyPrice + "</span>"
+					rowFields += "<span onclick='setPrice(\"" + item.id + "\", " + buyPrice + ")' class='small nowrap'> set</span><img onclick='setPrice(\"" + item.id + "\", " + buyPrice + ")' width='12px' style='padding: 2px' src='img/up-arrow.png'>"
 				}
 
 				if (item.type === "sell") {
@@ -484,15 +484,12 @@ function updateDisplay() {
 
 					if (item.price <= sellPrice) { //0.00%
 						sellColor = "color-green"
-					} else if (item.price > sellPrice + 0.6) { //bigger diffrence
+					} else {
 						sellColor = "color-red"
-					} else if (item.price > sellPrice + 0.4) {
-						sellColor = "color-yellow"
-					} else if (item.price > sellPrice + 0.2) {
-						sellColor = "color-black"
 					}
 
 					rowFields += "</br><img width='12px' style='padding: 2px' src='img/chestSell.png'><span class='small nowrap " + sellColor + "'>" + sellPrice + "</span>"
+					rowFields += "<span onclick='setPrice(\"" + item.id + "\", " + sellPrice + ")' class='small nowrap'> set</span><img width='12px' onclick='setPrice(\"" + item.id + "\", " + sellPrice + ")' style='padding: 2px' src='img/up-arrow.png'>"
 				}
 
 
@@ -531,13 +528,15 @@ function updateDisplay() {
 				} else {
 					rowFields += "<img onclick='flipSellTransaction(\"" + item.id + "\")' width='24px' style='padding: 2px' src='img/chestBuy.png'>";
 				}
+			}
+			/* Delete */
+			rowFields += "<img onclick='deleteTransaction(\"" + item.id + "\")' width='24px' style='padding: 2px' src='img/lava_bucket.png'>";
 
-				/* Delete */
-				rowFields += "<img onclick='deleteTransaction(\"" + item.id + "\")' width='24px' style='padding: 2px' src='img/lava_bucket.png'>";
+			if (!item.finished) {
 				/* Copy */
 				rowFields += "<img onclick='copyTransaction(\"" + item.id + "\")' width='24px' style='padding: 2px' src='img/copy_dye.png'>";
 			}
-			/* Copy */
+			/* finish */
 			rowFields += "<img onclick='finishTransaction(\"" + item.id + "\")' width='24px' style='padding: 2px' src='img/check.png'>";
 
 			rowFields += "</td>";
@@ -702,6 +701,17 @@ function chanceType(item) {
 	})
 
 	result[0].type = type;
+	updateDisplay();
+}
+
+
+function setPrice(item, price) {
+
+	var result = transactions.filter(obj => {
+		return obj.id === item;
+	})
+
+	result[0].price = price;
 	updateDisplay();
 }
 
@@ -1037,7 +1047,7 @@ function shortCutsToNumber(text) {
 	//replace k with numbers for math functions
 
 	var value; //parseFloat(text);
-	
+
 	for (var i = 0; i < text.length; i++) {
 		var char = text.charAt(i);
 
@@ -1048,9 +1058,9 @@ function shortCutsToNumber(text) {
 
 			value = (value * 1000).toString();
 			//replace in String
-			var text = [text.slice(0, i-cuttingLength), value, text.slice(i+1)].join('');
+			var text = [text.slice(0, i - cuttingLength), value, text.slice(i + 1)].join('');
 
-			
+
 		}
 
 		if (char === "m" || char === "M") {
@@ -1060,8 +1070,8 @@ function shortCutsToNumber(text) {
 
 			value = (value * 1000000).toString();
 			//replace in String
-			var text = [text.slice(0, i-cuttingLength), value, text.slice(i+1)].join('');
-			
+			var text = [text.slice(0, i - cuttingLength), value, text.slice(i + 1)].join('');
+
 		}
 	}
 	console.log(text)
@@ -1070,15 +1080,15 @@ function shortCutsToNumber(text) {
 	return parseFloat(text);
 }
 
-function getLeadingNumberFromString(text, charPosition){
+function getLeadingNumberFromString(text, charPosition) {
 
 	var value = "";
 
-	for (var i = charPosition-1; i >= 0; i--) {
+	for (var i = charPosition - 1; i >= 0; i--) {
 		var char = text.charAt(i)
 		console.log(char);
 
-		if(parseInt(char) !== NaN && char !== "-" && char !== "+"){
+		if (parseInt(char) !== NaN && char !== "-" && char !== "+") {
 			value = parseInt(char) + value;
 		} else {
 			return value;
