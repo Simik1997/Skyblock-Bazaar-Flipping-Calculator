@@ -25,6 +25,10 @@
 	NPC Deals ergänzen
 	Suchleiste 
 	ertrag nach item
+	import export data
+	transaction price +-0.1 knopf
+	max quantity
+	item icons
 
 Ideen
 Darkmode
@@ -38,7 +42,7 @@ Week Durchschnitt
 <html xmlns="http://www.w3.org/1999/xhtml">
 
 <head>
-	<title>Flipping Calculator v2.0</title>
+	<title>Flipping Calculator v2.1</title>
 	<meta name="description" content="A utility to help players make money by 'Bazaar Flipping' in Hypixel Skyblock." />
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 	<link rel="stylesheet" type="text/css" href="style.css" />
@@ -73,6 +77,9 @@ Week Durchschnitt
 				Max backlog
 			</td>
 			<td>
+				Max quantity
+			</td>
+			<td>
 				Tax rate
 			</td>
 		</tr>
@@ -85,6 +92,9 @@ Week Durchschnitt
 			</td>
 			<td>
 				<input id="maxBacklog" type="text"> Days
+			</td>
+			<td>
+				<input  id="maxQuantity" type="text">
 			</td>
 			<td>
 				<input style="width: 60px;" id="taxRate" type="text"> %
@@ -112,6 +122,11 @@ Week Durchschnitt
 			</td>
 			<td>
 				<div class="help">
+					<p>Max quantity of Items you want to flip.</p>
+				</div>
+			</td>
+			<td>
+				<div class="help">
 					<p>Taxrate you see on the Bazzar. Needed to calculate the Profit in transaction log. (Only on sales)
 					</p>
 				</div>
@@ -134,8 +149,13 @@ Week Durchschnitt
 		<input type="checkbox" id="shortNumbers" class="settings" name="shortNumbers" value="shortNumbers">
 		<label for="shortNumbers">short numbers</label>
 		<!-- hideClosedTransactions -->
-		<input type="checkbox" id="hideClosedTransactions" class="settings" name="hideClosedTransactions" value="hideClosedTransactions">
+		<input type="checkbox" id="hideClosedTransactions" class="settings" name="hideClosedTransactions"
+			value="hideClosedTransactions">
 		<label for="hideClosedTransactions">hide closed transactions</label>
+		<!-- showProfitPerItem -->
+		<input type="checkbox" id="showProfitPerItem" class="settings" name="showProfitPerItem"
+			value="showProfitPerItem">
+		<label for="showProfitPerItem">show profit per Item</label>
 	</div>
 
 	<div class="help">
@@ -168,7 +188,8 @@ Week Durchschnitt
 			<li><b>Item Name:</b> Click to open the wiki.</li>
 			<li><b>Numbers:</b> Click to copy to clipboard.</li>
 			<li><b>Expertmode:</b> Show average prices.</li>
-			<li><b>Short numbers:</b> Shortens numbers using k & m. 1k means 1000. You can althoug type it in using k & m.</li>
+			<li><b>Short numbers:</b> Shortens numbers using k & m. 1k means 1000. You can althoug type it in using k &
+				m.</li>
 			<li><b>Quick Math:</b> Type in Math is ok as well. For Example 1k - 10 = 990</li>
 		</ul>
 	</div>

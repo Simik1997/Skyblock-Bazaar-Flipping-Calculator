@@ -475,7 +475,7 @@ function updateDisplay() {
 						buyColor = "color-red"
 					}
 					rowFields += "<br><img width='12px' style='padding: 2px' src='img/chestBuy.png'><span class='small nowrap " + buyColor + "'>" + buyPrice + "</span>"
-					rowFields += "<span onclick='setPrice(\"" + item.id + "\", " + buyPrice + ")' class='small nowrap'> set</span><img onclick='setPrice(\"" + item.id + "\", " + buyPrice + ")' width='12px' style='padding: 2px' src='img/up-arrow.png'>"
+					rowFields += "<span onclick='setPrice(\"" + item.id + "\", " + buyPrice + ")' class='small nowrap'> set +0.1</span><img onclick='setPrice(\"" + item.id + "\", " + buyPrice + ","+0.1+")' width='12px' style='padding: 2px' src='img/up-arrow.png'>"
 				}
 
 				if (item.type === "sell") {
@@ -489,7 +489,7 @@ function updateDisplay() {
 					}
 
 					rowFields += "</br><img width='12px' style='padding: 2px' src='img/chestSell.png'><span class='small nowrap " + sellColor + "'>" + sellPrice + "</span>"
-					rowFields += "<span onclick='setPrice(\"" + item.id + "\", " + sellPrice + ")' class='small nowrap'> set</span><img width='12px' onclick='setPrice(\"" + item.id + "\", " + sellPrice + ")' style='padding: 2px' src='img/up-arrow.png'>"
+					rowFields += "<span onclick='setPrice(\"" + item.id + "\", " + sellPrice + ")' class='small nowrap'> set -0.1</span><img width='12px' onclick='setPrice(\"" + item.id + "\", " + sellPrice + ","+-0.1+")' style='padding: 2px' src='img/up-arrow.png'>"
 				}
 
 
@@ -502,7 +502,7 @@ function updateDisplay() {
 			/* Count */
 			rowFields += "<td class='text-end'><input " + disabled + " onchange='chanceCount(\"" + item.id + "\")' class='text-end borderless-input' id='CO" + item.id + "' value='" + formatNumberAbsolut(item.count) + "' type='text'>";
 
-			if (expertMode && item.type === "buy" && !item.finished) {
+			if (expertMode && item.type === "sell" && !item.finished) {
 				rowFields += "<br><span class='small nowrap'>Stock: " + getStockCount(item.name) + "</span>"
 			}
 
@@ -558,7 +558,7 @@ function updateDisplay() {
 		});
 		taxes = taxes.toFixed(0);
 
-		if (saldo < 0) {
+		if (saldo - taxes < 0) {
 			color = "color-red";
 		} else {
 			color = "color-green"
@@ -705,13 +705,13 @@ function chanceType(item) {
 }
 
 
-function setPrice(item, price) {
+function setPrice(item, price, offset) {
 
 	var result = transactions.filter(obj => {
 		return obj.id === item;
 	})
 
-	result[0].price = price;
+	result[0].price = (price + offset).toFixed(1);
 	updateDisplay();
 }
 
@@ -989,7 +989,8 @@ const average = (arr, name) => {
 
 function formatNumber(number) {
 	var suffix = "";
-	if (shortNumbers) {
+
+	if (shortNumbers && number !== 0) {
 		if (Math.abs(parseFloat(number)) >= 1000000) {
 			number = (number / 1000000).toFixed(2);
 			suffix = "m";
@@ -1006,7 +1007,7 @@ function formatNumber(number) {
 
 function formatNumberAbsolut(number) {
 	var suffix = "";
-	if (shortNumbers) {
+	if (shortNumbers && number !== 0) {
 		if (number % 1000000 === 0) {
 			number = (number / 1000000).toFixed(2);
 			suffix = "m";
@@ -1046,7 +1047,10 @@ function shortCutsToNumber(text) {
 
 	//replace k with numbers for math functions
 
-	var value; //parseFloat(text);
+	var value;
+	
+	//replace all " "
+	text = text.toString().replaceAll(" ", "");
 
 	for (var i = 0; i < text.length; i++) {
 		var char = text.charAt(i);

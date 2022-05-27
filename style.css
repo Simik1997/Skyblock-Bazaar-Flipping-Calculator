@@ -77,6 +77,10 @@ input#maxOffers {
 input#maxBacklog {
   width: 3em;
 }
+input#maxQuantity {
+  width: 7em;
+}
+
 div.sorts input[type=radio], div.settings input[type=checkbox] {
   opacity: 0;
   position: fixed;
